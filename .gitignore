@@ -1,0 +1,132 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Variables de entorno y secretos
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+
+# Frontend (Node.js / React)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.npm
+frontend/.yarn/
+frontend/.pnp.*
+
+# Backend (Python)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/*.so
+backend/.Python
+backend/env/
+backend/venv/
+backend/ENV/
+backend/env.bak/
+backend/venv.bak/
+backend/.env
+backend/pip-log.txt
+backend/pip-delete-this-directory.txt
+backend/.coverage
+backend/htmlcov/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.dmypy.json
+backend/dmypy.json
+
+# Docker
+.docker/
+docker-compose.override.yml
+.dockerignore
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+database/backups/
+postgres_data/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Archivos temporales
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Documentación generada
+docs/_build/
+
+# Archivos de configuración específicos del desarrollador
+.local
+.config
+
+# Archivos de respaldo
+*.bak
+*.backup
+*.old
+
+# Archivos de datos sensibles (cuando tengas la hoja de cálculo real)
+backend/src/real_data.py
+data/
+*.xlsx
+*.csv
+*.xls
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
