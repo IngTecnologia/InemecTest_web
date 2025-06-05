@@ -3,7 +3,7 @@ Datos de ejemplo para testing
 Este archivo se reemplazará cuando tengas la hoja de cálculo real
 """
 
-from .database import execute, execute_many
+from .database import execute, execute_many, fetch_one
 
 # Datos de ejemplo de procedimientos
 SAMPLE_PROCEDURES = [
