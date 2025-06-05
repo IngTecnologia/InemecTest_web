@@ -8,21 +8,25 @@ from dotenv import load_dotenv
 from src.database import get_database, init_db
 from src.models import *
 from src.api import router
+from src.config import API_CONFIG, validate_config
 
 # Cargar variables de entorno
 load_dotenv()
 
-# Crear aplicación FastAPI
+# Validar configuración al iniciar
+validate_config()
+
+# Crear aplicación FastAPI usando configuración
 app = FastAPI(
-    title="InemecTest API",
-    description="API para sistema de evaluación de conocimientos técnicos",
-    version="1.0.0"
+    title=API_CONFIG["title"],
+    description=API_CONFIG["description"],
+    version=API_CONFIG["version"]
 )
 
-# Configurar CORS
+# Configurar CORS usando configuración
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost", "http://localhost:3000", "http://localhost:5173"],
+    allow_origins=API_CONFIG["cors_origins"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,18 +59,18 @@ async def startup_event():
     await init_db()
     print("✅ Base de datos inicializada")
     
-    # Insertar datos de ejemplo si no existen
+    # Cargar datos desde Excel o usar ejemplos
     try:
-        from src.sample_data import check_data_exists, insert_sample_data
+        from src.excel_data_loader import check_data_exists, load_data_from_excel
         data_count = await check_data_exists()
         
         if data_count["procedures"] == 0:
-            print("📝 No hay datos, insertando ejemplos...")
-            await insert_sample_data()
+            print("📊 No hay datos, cargando desde Excel...")
+            await load_data_from_excel()
         else:
             print(f"📊 Datos existentes: {data_count['procedures']} procedimientos, {data_count['questions']} preguntas")
     except Exception as e:
-        print(f"⚠️ Error con datos de ejemplo: {e}")
+        print(f"⚠️ Error cargando datos: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -74,5 +78,9 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run(
+        "main:app", 
+        host=API_CONFIG["host"], 
+        port=API_CONFIG["port"], 
+        reload=True
+    )

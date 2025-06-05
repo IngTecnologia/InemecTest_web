@@ -157,7 +157,7 @@ async def complete_evaluation(evaluation_id: int):
     """
     return await execute(query, {"evaluation_id": evaluation_id})
 
-async def get_evaluation_results(evaluation_id: int):
+async def fetch_evaluation_results(evaluation_id: int):
     """Obtener resultados completos de una evaluación"""
     
     # Datos básicos de la evaluación
