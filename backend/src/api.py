@@ -1,9 +1,9 @@
 """
-API endpoints para InemecTest - Basado completamente en Excel
+API endpoints para InemecTest - Versión corregida con manejo de randomización
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import random
 
 from .models import *
@@ -18,34 +18,65 @@ excel_handler = ExcelHandler()
 # FUNCIONES AUXILIARES
 # =============================================================================
 
-def randomize_question_options(question: dict) -> QuestionForUser:
-    """Randomizar opciones de una pregunta manteniendo registro de posiciones"""
-    options = [
-        question["option_a"],
-        question["option_b"], 
-        question["option_c"],
-        question["option_d"]
+def randomize_question_options(question: dict) -> tuple[QuestionForUser, Dict[str, str]]:
+    """
+    Randomizar opciones de una pregunta y retornar mapeo inverso
+    Retorna: (pregunta_randomizada, mapeo_inverso)
+    """
+    # Crear lista de opciones con sus letras originales
+    options_with_letters = [
+        ("A", question["option_a"]),
+        ("B", question["option_b"]), 
+        ("C", question["option_c"]),
+        ("D", question["option_d"])
     ]
     
-    # Crear mapeo original antes de randomizar
-    original_mapping = {
-        "A": question["option_a"],
-        "B": question["option_b"],
-        "C": question["option_c"],
-        "D": question["option_d"]
-    }
+    # Randomizar
+    random.shuffle(options_with_letters)
     
-    # Randomizar opciones
-    random.shuffle(options)
+    # Crear mapeo inverso: posición_visual -> letra_original
+    inverse_mapping = {}
+    randomized_options = []
+    
+    for idx, (original_letter, option_text) in enumerate(options_with_letters):
+        visual_position = chr(65 + idx)  # A, B, C, D basado en posición visual
+        inverse_mapping[visual_position] = original_letter
+        randomized_options.append(option_text)
     
     return QuestionForUser(
         id=question["id"],
         question_text=question["question_text"],
-        options=options
-    )
+        options=randomized_options
+    ), inverse_mapping
 
-def calculate_detailed_answers(questions: List[dict], user_answers: List[dict]) -> List[dict]:
-    """Calcular respuestas detalladas con información completa"""
+# Cache global para guardar mapeos de opciones por sesión
+# En producción, usar Redis o similar
+question_mappings_cache = {}
+
+def store_question_mappings(procedure_codigo: str, questions_data: List[dict], mappings: Dict[int, Dict[str, str]]):
+    """Guardar mapeos de preguntas para una evaluación"""
+    cache_key = f"{procedure_codigo}_mappings"
+    question_mappings_cache[cache_key] = {
+        "questions": questions_data,
+        "mappings": mappings
+    }
+
+def get_question_mappings(procedure_codigo: str) -> tuple[List[dict], Dict[int, Dict[str, str]]]:
+    """Obtener mapeos guardados"""
+    cache_key = f"{procedure_codigo}_mappings"
+    if cache_key in question_mappings_cache:
+        data = question_mappings_cache[cache_key]
+        return data["questions"], data["mappings"]
+    return None, None
+
+def calculate_detailed_answers_with_mapping(
+    questions: List[dict], 
+    user_answers: List[dict],
+    mappings: Dict[int, Dict[str, str]]
+) -> List[dict]:
+    """
+    Calcular respuestas detalladas usando mapeo de opciones randomizadas
+    """
     questions_dict = {q["id"]: q for q in questions}
     detailed_answers = []
     
@@ -55,10 +86,19 @@ def calculate_detailed_answers(questions: List[dict], user_answers: List[dict]) 
         
         if not question:
             continue
-            
-        selected_option = answer["selected_option"]
-        correct_option = question["correct_answer"]
-        is_correct = selected_option == correct_option
+        
+        # La respuesta del usuario es la posición visual (A, B, C, D)
+        visual_position = answer["selected_option"]
+        
+        # Obtener el mapeo para esta pregunta
+        question_mapping = mappings.get(question_id, {})
+        
+        # Convertir posición visual a letra original
+        original_selected = question_mapping.get(visual_position, visual_position)
+        
+        # La respuesta correcta siempre es A en el original
+        correct_option = "A"
+        is_correct = original_selected == correct_option
         
         # Obtener textos de las opciones
         option_map = {
@@ -68,13 +108,20 @@ def calculate_detailed_answers(questions: List[dict], user_answers: List[dict]) 
             "D": question["option_d"]
         }
         
+        # Para mostrar al usuario, necesitamos saber qué opción visual corresponde a la A original
+        visual_correct = None
+        for visual_pos, original_pos in question_mapping.items():
+            if original_pos == "A":
+                visual_correct = visual_pos
+                break
+        
         detailed_answer = {
             "question_id": question_id,
             "question_text": question["question_text"],
-            "selected_option": selected_option,
-            "selected_text": option_map.get(selected_option, ""),
-            "correct_option": correct_option,
-            "correct_text": option_map.get(correct_option, ""),
+            "selected_option": visual_position,  # Lo que vio el usuario
+            "selected_text": option_map.get(original_selected, ""),
+            "correct_option": visual_correct or "A",  # Posición visual de la correcta
+            "correct_text": option_map.get("A", ""),  # Siempre es option_a
             "is_correct": is_correct
         }
         
@@ -177,7 +224,7 @@ async def get_procedure_questions(codigo: str):
                 detail=f"Procedimiento {codigo} no encontrado"
             )
         
-        # Obtener preguntas
+        # Obtener preguntas originales
         questions_data = await excel_handler.get_questions_by_procedure(codigo)
         if not questions_data:
             raise HTTPException(
@@ -185,8 +232,17 @@ async def get_procedure_questions(codigo: str):
                 detail=f"No hay preguntas para el procedimiento {codigo}"
             )
         
-        # Randomizar opciones para cada pregunta
-        randomized_questions = [randomize_question_options(q) for q in questions_data]
+        # Randomizar opciones para cada pregunta y guardar mapeos
+        randomized_questions = []
+        mappings = {}
+        
+        for question in questions_data:
+            randomized_q, mapping = randomize_question_options(question)
+            randomized_questions.append(randomized_q)
+            mappings[question["id"]] = mapping
+        
+        # Guardar mapeos en cache para usar al calificar
+        store_question_mappings(codigo, questions_data, mappings)
         
         return ProcedureWithQuestions(
             procedure=Procedure(**procedure_data),
@@ -217,13 +273,19 @@ async def create_evaluation(evaluation_data: EvaluationCreate):
                 detail=f"Procedimiento {evaluation_data.procedure_codigo} no encontrado"
             )
         
-        # Obtener preguntas originales para validar respuestas
-        questions_data = await excel_handler.get_questions_by_procedure(evaluation_data.procedure_codigo)
-        if not questions_data:
-            raise HTTPException(
-                status_code=404, 
-                detail=f"No hay preguntas para el procedimiento {evaluation_data.procedure_codigo}"
-            )
+        # Obtener preguntas originales y mapeos guardados
+        questions_data, mappings = get_question_mappings(evaluation_data.procedure_codigo)
+        
+        # Si no hay mapeos en cache, obtener preguntas directamente
+        if not questions_data or not mappings:
+            questions_data = await excel_handler.get_questions_by_procedure(evaluation_data.procedure_codigo)
+            if not questions_data:
+                raise HTTPException(
+                    status_code=404, 
+                    detail=f"No hay preguntas para el procedimiento {evaluation_data.procedure_codigo}"
+                )
+            # En este caso, asumimos que no hubo randomización
+            mappings = {q["id"]: {"A": "A", "B": "B", "C": "C", "D": "D"} for q in questions_data}
         
         # Validar que se respondieron todas las preguntas
         if len(evaluation_data.knowledge_answers) != len(questions_data):
@@ -232,9 +294,13 @@ async def create_evaluation(evaluation_data: EvaluationCreate):
                 detail=f"Se esperaban {len(questions_data)} respuestas, se recibieron {len(evaluation_data.knowledge_answers)}"
             )
         
-        # Calcular respuestas detalladas con corrección
+        # Calcular respuestas detalladas con mapeo de randomización
         user_answers = [answer.dict() for answer in evaluation_data.knowledge_answers]
-        detailed_answers = calculate_detailed_answers(questions_data, user_answers)
+        detailed_answers = calculate_detailed_answers_with_mapping(
+            questions_data, 
+            user_answers, 
+            mappings
+        )
         
         # Calcular puntuación
         score_data = calculate_score(detailed_answers)

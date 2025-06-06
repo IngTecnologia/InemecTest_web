@@ -5,8 +5,14 @@ const EvaluationForm = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [procedures, setProcedures] = useState([])
+  const [filteredProcedures, setFilteredProcedures] = useState([])
   const [selectedProcedure, setSelectedProcedure] = useState(null)
   const [questions, setQuestions] = useState([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
+  
+  // NUEVO: Mapeo de opciones randomizadas a originales
+  const [optionMappings, setOptionMappings] = useState({})
   
   const [formData, setFormData] = useState({
     // Datos del usuario
@@ -45,6 +51,19 @@ const EvaluationForm = () => {
     loadProcedures()
   }, [])
 
+  // Filtrar procedimientos basado en búsqueda
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = procedures.filter(proc => 
+        proc.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        proc.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      setFilteredProcedures(filtered)
+    } else {
+      setFilteredProcedures(procedures)
+    }
+  }, [searchTerm, procedures])
+
   const loadProcedures = async () => {
     try {
       setLoading(true)
@@ -56,6 +75,7 @@ const EvaluationForm = () => {
       
       const data = await response.json()
       setProcedures(data.procedures || [])
+      setFilteredProcedures(data.procedures || [])
       
     } catch (error) {
       console.error('Error cargando procedimientos:', error)
@@ -76,7 +96,32 @@ const EvaluationForm = () => {
       
       const data = await response.json()
       setSelectedProcedure(data.procedure)
-      setQuestions(data.questions || [])
+      
+      // IMPORTANTE: Procesar las preguntas y crear mapeo de opciones
+      const processedQuestions = data.questions.map(question => {
+        // Las opciones vienen randomizadas del backend
+        // Necesitamos saber cuál es la opción correcta (siempre A en el original)
+        // Creamos un mapeo para cada pregunta
+        const mapping = {}
+        question.options.forEach((option, index) => {
+          const letterPosition = String.fromCharCode(65 + index) // A, B, C, D
+          mapping[letterPosition] = option
+        })
+        
+        return {
+          ...question,
+          optionMapping: mapping
+        }
+      })
+      
+      setQuestions(processedQuestions)
+      
+      // Guardar los mapeos para usar al enviar respuestas
+      const mappings = {}
+      processedQuestions.forEach(q => {
+        mappings[q.id] = q.optionMapping
+      })
+      setOptionMappings(mappings)
       
     } catch (error) {
       console.error('Error cargando preguntas:', error)
@@ -93,19 +138,23 @@ const EvaluationForm = () => {
     }))
   }
 
-  const handleProcedureChange = async (procedureCode) => {
-    handleInputChange('procedure_codigo', procedureCode)
-    if (procedureCode) {
-      await loadQuestions(procedureCode)
+  const handleProcedureSelect = async (procedure) => {
+    setSearchTerm(`${procedure.codigo} - ${procedure.nombre}`)
+    setShowDropdown(false)
+    handleInputChange('procedure_codigo', procedure.codigo)
+    
+    if (procedure.codigo) {
+      await loadQuestions(procedure.codigo)
     }
   }
 
-  const handleAnswerChange = (questionId, answer) => {
+  const handleAnswerChange = (questionId, selectedPosition) => {
+    // selectedPosition es A, B, C o D basado en la posición visual
     setFormData(prev => ({
       ...prev,
       answers: {
         ...prev.answers,
-        [questionId]: answer
+        [questionId]: selectedPosition
       }
     }))
   }
@@ -152,9 +201,9 @@ const EvaluationForm = () => {
           campo: formData.campo
         },
         procedure_codigo: formData.procedure_codigo,
-        knowledge_answers: Object.entries(formData.answers).map(([questionId, selectedOption]) => ({
+        knowledge_answers: Object.entries(formData.answers).map(([questionId, selectedPosition]) => ({
           question_id: parseInt(questionId),
-          selected_option: selectedOption
+          selected_option: selectedPosition // Enviamos la posición visual (A, B, C, D)
         })),
         applied_knowledge: formData.applied,
         feedback: formData.feedback
@@ -200,6 +249,8 @@ const EvaluationForm = () => {
       })
       setSelectedProcedure(null)
       setQuestions([])
+      setSearchTerm('')
+      setOptionMappings({})
       
     } catch (error) {
       console.error('Error enviando evaluación:', error)
@@ -255,18 +306,56 @@ const EvaluationForm = () => {
 
       <div className="form-group">
         <label>Procedimiento:</label>
-        <select
-          value={formData.procedure_codigo}
-          onChange={(e) => handleProcedureChange(e.target.value)}
-          disabled={loading}
-        >
-          <option value="">Seleccione un procedimiento</option>
-          {procedures.map((proc) => (
-            <option key={proc.codigo} value={proc.codigo}>
-              {proc.codigo} - {proc.nombre}
-            </option>
-          ))}
-        </select>
+        <div style={{position: 'relative'}}>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setShowDropdown(true)
+            }}
+            onFocus={() => setShowDropdown(true)}
+            placeholder="Buscar por código o nombre..."
+            disabled={loading}
+            style={{width: '100%'}}
+          />
+          
+          {showDropdown && filteredProcedures.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              maxHeight: '200px',
+              overflowY: 'auto',
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              marginTop: '2px',
+              zIndex: 1000,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              {filteredProcedures.map((proc) => (
+                <div
+                  key={proc.codigo}
+                  onClick={() => handleProcedureSelect(proc)}
+                  style={{
+                    padding: '0.5rem',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #eee',
+                    ':hover': {
+                      background: '#f5f5f5'
+                    }
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
+                  onMouseLeave={(e) => e.target.style.background = 'white'}
+                >
+                  <strong>{proc.codigo}</strong> - {proc.nombre}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {loading && <p style={{color: '#667eea', fontSize: '0.9rem'}}>Cargando...</p>}
       </div>
 
@@ -385,7 +474,7 @@ const EvaluationForm = () => {
 
       <div className="checkbox-group">
         <input
-          type="checkbox"
+          type="checkbox"  
           checked={formData.applied.identifico_riesgos}
           onChange={(e) => handleAppliedChange('identifico_riesgos', e.target.checked)}
         />
@@ -498,6 +587,18 @@ const EvaluationForm = () => {
       </div>
     </div>
   )
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.form-group')) {
+        setShowDropdown(false)
+      }
+    }
+    
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   if (loading && currentStep === 1) {
     return (
