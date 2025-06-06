@@ -6,7 +6,7 @@ function App() {
     <div className="container">
       <div className="header">
         <h1>InemecTest</h1>
-        <p>Sistema de Evaluación de Conocimientos Técnicos</p>
+        <p>Evaluación de Conocimientos Técnicos: Programa de Disciplina Operativa</p>
       </div>
       <EvaluationForm />
     </div>
