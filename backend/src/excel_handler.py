@@ -1,7 +1,6 @@
 """
 Manejador de archivos Excel para InemecTest
-UBICACIÓN: backend/src/excel_handler.py
-Este archivo REEMPLAZA completamente a excel_data_loader.py
+Versión completa y funcional basada en Excel
 """
 
 import pandas as pd
@@ -37,6 +36,9 @@ class ExcelHandler:
         ensure_data_directory()
         self.data_file = get_data_file_path()
         self.results_file = get_results_file_path()
+        print(f"📁 Excel Handler inicializado:")
+        print(f"   - Archivo de datos: {self.data_file}")
+        print(f"   - Archivo de resultados: {self.results_file}")
     
     # =================================================================
     # LECTURA DE DATOS (Procedimientos y Preguntas)
@@ -175,6 +177,7 @@ class ExcelHandler:
     async def _prepare_evaluation_row(self, evaluation_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Preparar fila principal de evaluación"""
         now = datetime.now()
+        score_data = data.get("score_data", {})
         
         return {
             "evaluation_id": evaluation_id,
@@ -183,9 +186,9 @@ class ExcelHandler:
             "campo": data["user_data"]["campo"],
             "procedure_codigo": data["procedure_codigo"],
             "procedure_nombre": data.get("procedure_nombre", ""),
-            "total_questions": len(data["knowledge_answers"]),
-            "correct_answers": sum(1 for ans in data["knowledge_answers"] if ans.get("is_correct", False)),
-            "score_percentage": round((sum(1 for ans in data["knowledge_answers"] if ans.get("is_correct", False)) / len(data["knowledge_answers"]) * 100), 2),
+            "total_questions": score_data.get("total_questions", 0),
+            "correct_answers": score_data.get("correct_answers", 0),
+            "score_percentage": score_data.get("score_percentage", 0),
             "aprobo": data["feedback"]["aprobo"],
             "started_at": now.strftime("%Y-%m-%d %H:%M:%S"),
             "completed_at": now.strftime("%Y-%m-%d %H:%M:%S")
@@ -198,7 +201,7 @@ class ExcelHandler:
         for i, answer in enumerate(data["knowledge_answers"], 1):
             row = {
                 "evaluation_id": evaluation_id,
-                "question_id": i,
+                "question_id": answer.get("question_id", i),
                 "question_text": answer.get("question_text", ""),
                 "selected_option": answer["selected_option"],
                 "selected_text": answer.get("selected_text", ""),
@@ -339,7 +342,7 @@ class ExcelHandler:
             
             # Construir resultado
             result = {
-                "evaluation": evaluation_row.iloc[0].to_dict(),
+                "evaluation": evaluation_row.iloc[0].to_dict() if not evaluation_row.empty else {},
                 "answers": [row.to_dict() for _, row in answers_rows.iterrows()],
                 "applied": applied_row.iloc[0].to_dict() if not applied_row.empty else {},
                 "feedback": feedback_row.iloc[0].to_dict() if not feedback_row.empty else {}
@@ -374,17 +377,18 @@ class ExcelHandler:
             
             # Agrupar por procedimiento
             stats = []
-            for codigo in df['Procedure Codigo'].unique():
-                proc_data = df[df['Procedure Codigo'] == codigo]
-                
-                stat = {
-                    "procedure_codigo": codigo,
-                    "procedure_name": proc_data['Procedure Nombre'].iloc[0] if not proc_data.empty else "",
-                    "total_evaluations": len(proc_data),
-                    "average_score": round(proc_data['Score Percentage'].mean(), 2),
-                    "approval_rate": round((proc_data['Aprobo'] == 'Sí').sum() / len(proc_data) * 100, 2)
-                }
-                stats.append(stat)
+            if not df.empty:
+                for codigo in df['Procedure Codigo'].unique():
+                    proc_data = df[df['Procedure Codigo'] == codigo]
+                    
+                    stat = {
+                        "procedure_codigo": codigo,
+                        "procedure_name": proc_data['Procedure Nombre'].iloc[0] if not proc_data.empty else "",
+                        "total_evaluations": len(proc_data),
+                        "average_score": round(proc_data['Score Percentage'].mean(), 2),
+                        "approval_rate": round((proc_data['Aprobo'] == 'Sí').sum() / len(proc_data) * 100, 2)
+                    }
+                    stats.append(stat)
             
             return sorted(stats, key=lambda x: x['total_evaluations'], reverse=True)
             

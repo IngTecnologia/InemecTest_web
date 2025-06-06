@@ -1,9 +1,17 @@
+
+# InemecTest Backend Dependencies - Excel-based version
+
+# FastAPI y servidor
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+
+# Validación de datos
 pydantic==2.5.0
-databases[postgresql]==0.8.0
-asyncpg==0.29.0
-python-dotenv==1.0.0
-python-multipart==0.0.6
+
+# Manejo de archivos Excel
 pandas==2.1.4
 openpyxl==3.1.2
+
+# Utilidades
+python-dotenv==1.0.0
+python-multipart==0.0.6

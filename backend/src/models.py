@@ -1,5 +1,5 @@
 """
-Modelos de datos para InemecTest - Versión simplificada basada en Excel
+Modelos de datos para InemecTest - Versión limpia basada en Excel
 """
 
 from pydantic import BaseModel, Field
@@ -47,30 +47,19 @@ class ProcedureList(BaseModel):
 # MODELOS DE PREGUNTAS
 # =============================================================================
 
-class Question(BaseModel):
-    """Pregunta con respuesta correcta (para uso interno)"""
-    id: int
-    procedure_codigo: str
-    question_text: str
-    option_a: str
-    option_b: str
-    option_c: str
-    option_d: str
-    correct_answer: OptionEnum
-
 class QuestionForUser(BaseModel):
-    """Pregunta para mostrar al usuario (sin respuesta correcta)"""
+    """Pregunta para mostrar al usuario (sin respuesta correcta, opciones randomizadas)"""
     id: int
     question_text: str
-    options: List[str] = Field(..., description="Opciones randomizadas")
+    options: List[str] = Field(..., description="Opciones randomizadas A, B, C, D")
 
 class ProcedureWithQuestions(BaseModel):
-    """Procedimiento con sus preguntas"""
+    """Procedimiento con sus preguntas randomizadas"""
     procedure: Procedure
     questions: List[QuestionForUser]
 
 # =============================================================================
-# MODELOS DE EVALUACIÓN
+# MODELOS DE EVALUACIÓN - INPUT
 # =============================================================================
 
 class UserData(BaseModel):
@@ -82,7 +71,7 @@ class UserData(BaseModel):
 class KnowledgeAnswer(BaseModel):
     """Respuesta a una pregunta de conocimiento"""
     question_id: int = Field(..., description="ID de la pregunta")
-    selected_option: OptionEnum = Field(..., description="Opción seleccionada")
+    selected_option: OptionEnum = Field(..., description="Opción seleccionada (A, B, C, D)")
 
 class AppliedKnowledgeData(BaseModel):
     """Datos de evaluación de conocimiento aplicado"""
@@ -143,7 +132,7 @@ class EvaluationResults(BaseModel):
     completed_at: str
 
 # =============================================================================
-# MODELOS AUXILIARES
+# MODELOS AUXILIARES DE SISTEMA
 # =============================================================================
 
 class APIResponse(BaseModel):
@@ -161,7 +150,7 @@ class ErrorResponse(BaseModel):
 class HealthCheck(BaseModel):
     """Estado de salud de la API"""
     status: str
-    excel_files: Dict[str, bool]
+    excel_files: Dict[str, Any]
     timestamp: str
 
 # =============================================================================
@@ -176,26 +165,52 @@ class ProcedureStats(BaseModel):
     average_score: float
     approval_rate: float
 
-class SystemStats(BaseModel):
+class EvaluationSummary(BaseModel):
+    """Resumen de una evaluación para listas"""
+    evaluation_id: str
+    nombre: str
+    cargo: str
+    campo: str
+    procedure_codigo: str
+    procedure_nombre: str
+    score_percentage: float
+    aprobo: str
+    completed_at: str
+
+class EvaluationsList(BaseModel):
+    """Lista de evaluaciones"""
+    evaluations: List[EvaluationSummary]
+    total: int
+
+class GeneralStats(BaseModel):
     """Estadísticas generales del sistema"""
     total_procedures: int
     total_evaluations: int
-    total_questions: int
     average_score: float
-    most_evaluated_procedure: Optional[str]
-    procedures_stats: List[ProcedureStats]
+    approval_rate: float
+    total_approved: int
+    total_rejected: int
+
+class ProcedureStatsList(BaseModel):
+    """Lista de estadísticas por procedimiento"""
+    stats: List[ProcedureStats]
+    total_procedures: int
 
 # =============================================================================
-# MODELOS DE CONFIGURACIÓN
+# MODELOS DE VALIDACIÓN DE ARCHIVOS
 # =============================================================================
 
-class FormTexts(BaseModel):
-    """Textos del formulario"""
-    section: str
-    texts: Dict[str, str]
+class FileValidationResult(BaseModel):
+    """Resultado de validación de archivos Excel"""
+    exists: bool
+    valid: bool
+    procedures_count: int
+    questions_count: int
+    errors: List[str]
 
-class SystemConfig(BaseModel):
-    """Configuración del sistema"""
-    excel_files: Dict[str, str]
-    validation_rules: Dict[str, Any]
-    form_texts: Dict[str, Any]
+class SystemInfo(BaseModel):
+    """Información completa del sistema"""
+    system: Dict[str, str]
+    data: Dict[str, Any]
+    files: Dict[str, str]
+    top_procedures: List[ProcedureStats]

@@ -5,14 +5,13 @@ Aplicación principal InemecTest - Versión simplificada basada en Excel
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 import os
 from pathlib import Path
 from datetime import datetime
 
 # Importar módulos locales
 from src.config import API_CONFIG, validate_config, ensure_data_directory
-from src.models import *
+from src.models import HealthCheck, APIResponse
 from src.api import router
 from src.excel_handler import ExcelHandler
 
@@ -96,13 +95,16 @@ async def shutdown_event():
 @app.get("/", tags=["General"])
 async def root():
     """Endpoint raíz de la API"""
-    return {
-        "message": "InemecTest API está funcionando",
-        "version": API_CONFIG["version"],
-        "timestamp": datetime.now().isoformat(),
-        "docs": "/docs",
-        "status": "active"
-    }
+    return APIResponse(
+        success=True,
+        message="InemecTest API está funcionando",
+        data={
+            "version": API_CONFIG["version"],
+            "timestamp": datetime.now().isoformat(),
+            "docs": "/docs",
+            "status": "active"
+        }
+    )
 
 @app.get("/health", response_model=HealthCheck, tags=["General"])
 async def health_check():
@@ -116,8 +118,8 @@ async def health_check():
             "data_file_exists": data_validation["exists"],
             "data_file_valid": data_validation["valid"],
             "results_file_exists": results_file_exists,
-            "procedures_count": data_validation["procedures_count"],
-            "questions_count": data_validation["questions_count"]
+            "procedures_count": data_validation.get("procedures_count", 0),
+            "questions_count": data_validation.get("questions_count", 0)
         }
         
         # Determinar estado general
@@ -156,28 +158,35 @@ async def get_system_info():
         # Información de archivos
         data_validation = await excel_handler.validate_data_file()
         
-        # Estadísticas básicas
-        evaluations = await excel_handler.get_all_evaluations()
-        procedure_stats = await excel_handler.get_procedure_statistics()
+        # Estadísticas básicas si hay archivo de resultados
+        evaluations = []
+        procedure_stats = []
+        if excel_handler.results_file.exists():
+            evaluations = await excel_handler.get_all_evaluations()
+            procedure_stats = await excel_handler.get_procedure_statistics()
         
-        return {
-            "system": {
-                "name": "InemecTest",
-                "version": API_CONFIG["version"],
-                "mode": "Excel-based"
-            },
-            "data": {
-                "procedures_available": data_validation["procedures_count"],
-                "questions_available": data_validation["questions_count"],
-                "total_evaluations": len(evaluations),
-                "data_file_status": "valid" if data_validation["valid"] else "invalid"
-            },
-            "files": {
-                "data_file": str(excel_handler.data_file),
-                "results_file": str(excel_handler.results_file)
-            },
-            "top_procedures": procedure_stats[:5] if procedure_stats else []
-        }
+        return APIResponse(
+            success=True,
+            message="Información del sistema obtenida",
+            data={
+                "system": {
+                    "name": "InemecTest",
+                    "version": API_CONFIG["version"],
+                    "mode": "Excel-based"
+                },
+                "data": {
+                    "procedures_available": data_validation.get("procedures_count", 0),
+                    "questions_available": data_validation.get("questions_count", 0),
+                    "total_evaluations": len(evaluations),
+                    "data_file_status": "valid" if data_validation["valid"] else "invalid"
+                },
+                "files": {
+                    "data_file": str(excel_handler.data_file),
+                    "results_file": str(excel_handler.results_file)
+                },
+                "top_procedures": procedure_stats[:5] if procedure_stats else []
+            }
+        )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error obteniendo información del sistema: {str(e)}")
@@ -241,3 +250,4 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+    

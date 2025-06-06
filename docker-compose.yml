@@ -1,4 +1,3 @@
-
 version: '3.8'
 
 services:
@@ -11,10 +10,12 @@ services:
       - "80:80"
     container_name: inemectest-frontend
     restart: unless-stopped
+    depends_on:
+      - backend
     networks:
       - inemectest-network
 
-  # Backend FastAPI (para después)
+  # Backend FastAPI
   backend:
     build:
       context: ./backend
@@ -23,35 +24,20 @@ services:
       - "8000:8000"
     container_name: inemectest-backend
     restart: unless-stopped
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/inemectest
-    depends_on:
-      - postgres
-    networks:
-      - inemectest-network
-    # Comentado hasta que tengamos el backend listo
-    # profiles:
-    #   - backend
-
-  # Base de datos PostgreSQL
-  postgres:
-    image: postgres:15-alpine
-    container_name: inemectest-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: inemectest
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      # Montar directorio de datos para persistencia de Excel
+      - ./data:/app/data
+      # Opcional: logs
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
     networks:
       - inemectest-network
 
 volumes:
-  postgres_data:
+  # Volumen para datos Excel (opcional, ya se usa bind mount)
+  excel_data:
 
 networks:
   inemectest-network:
