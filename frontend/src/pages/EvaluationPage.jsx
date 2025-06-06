@@ -1,7 +1,7 @@
 import React from 'react'
-import EvaluationForm from '../components/evaluation/EvaluationForm.jsx'
+import EvaluationForm from '../components/evaluation/EvaluationForm'
 
-function App() {
+function EvaluationPage() {
   return (
     <div className="container">
       <div className="header">
@@ -13,4 +13,4 @@ function App() {
   )
 }
 
-export default App
+export default EvaluationPage
