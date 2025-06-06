@@ -1,9 +1,16 @@
+"""
+Modelos de datos para InemecTest - Versión simplificada basada en Excel
+"""
+
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 
-# Enums
+# =============================================================================
+# ENUMS
+# =============================================================================
+
 class CampoEnum(str, Enum):
     cusiana = "Cusiana"
     cupiagua = "Cupiagua"
@@ -16,85 +23,101 @@ class OptionEnum(str, Enum):
     C = "C"
     D = "D"
 
-class StatusEnum(str, Enum):
-    in_progress = "in_progress"
-    completed = "completed"
-
 class SiNoEnum(str, Enum):
     si = "Sí"
     no = "No"
 
-# Modelos base
-class ProcedureBase(BaseModel):
+# =============================================================================
+# MODELOS DE PROCEDIMIENTOS
+# =============================================================================
+
+class Procedure(BaseModel):
+    """Modelo para procedimiento"""
     codigo: str = Field(..., description="Código del procedimiento")
     nombre: str = Field(..., description="Nombre del procedimiento")
-    alcance: Optional[str] = Field(None, description="Alcance del procedimiento")
-    objetivo: Optional[str] = Field(None, description="Objetivo del procedimiento")
+    alcance: str = Field(..., description="Alcance del procedimiento")
+    objetivo: str = Field(..., description="Objetivo del procedimiento")
 
-class Procedure(ProcedureBase):
+class ProcedureList(BaseModel):
+    """Lista de procedimientos"""
+    procedures: List[Procedure]
+    total: int
+
+# =============================================================================
+# MODELOS DE PREGUNTAS
+# =============================================================================
+
+class Question(BaseModel):
+    """Pregunta con respuesta correcta (para uso interno)"""
     id: int
-    
-    class Config:
-        from_attributes = True
+    procedure_codigo: str
+    question_text: str
+    option_a: str
+    option_b: str
+    option_c: str
+    option_d: str
+    correct_answer: OptionEnum
 
-class QuestionBase(BaseModel):
-    question_text: str = Field(..., description="Texto de la pregunta")
-    option_a: str = Field(..., description="Opción A")
-    option_b: str = Field(..., description="Opción B")
-    option_c: str = Field(..., description="Opción C")
-    option_d: str = Field(..., description="Opción D")
-    correct_answer: OptionEnum = Field(..., description="Respuesta correcta")
-
-class Question(QuestionBase):
-    id: int
-    procedure_id: int
-    
-    class Config:
-        from_attributes = True
-
-class QuestionWithRandomizedOptions(BaseModel):
-    """Pregunta con opciones randomizadas para el frontend"""
+class QuestionForUser(BaseModel):
+    """Pregunta para mostrar al usuario (sin respuesta correcta)"""
     id: int
     question_text: str
     options: List[str] = Field(..., description="Opciones randomizadas")
-    # No incluimos correct_answer por seguridad
 
-# Modelos de evaluación
+class ProcedureWithQuestions(BaseModel):
+    """Procedimiento con sus preguntas"""
+    procedure: Procedure
+    questions: List[QuestionForUser]
+
+# =============================================================================
+# MODELOS DE EVALUACIÓN
+# =============================================================================
+
 class UserData(BaseModel):
+    """Datos del usuario que toma la evaluación"""
     nombre: str = Field(..., min_length=1, description="Nombre del evaluado")
     cargo: str = Field(..., min_length=1, description="Cargo del evaluado")
     campo: CampoEnum = Field(..., description="Campo de trabajo")
 
 class KnowledgeAnswer(BaseModel):
+    """Respuesta a una pregunta de conocimiento"""
     question_id: int = Field(..., description="ID de la pregunta")
     selected_option: OptionEnum = Field(..., description="Opción seleccionada")
 
 class AppliedKnowledgeData(BaseModel):
+    """Datos de evaluación de conocimiento aplicado"""
     describio_procedimiento: bool = Field(False, description="Describió el procedimiento")
     identifico_riesgos: bool = Field(False, description="Identificó riesgos")
     identifico_epp: bool = Field(False, description="Identificó EPP")
     describio_incidentes: bool = Field(False, description="Describió manejo de incidentes")
 
 class FeedbackData(BaseModel):
+    """Datos de feedback y observaciones"""
     hizo_sugerencia: SiNoEnum = Field(..., description="¿Hizo sugerencia?")
     cual_sugerencia: Optional[str] = Field(None, description="Descripción de la sugerencia")
     aprobo: SiNoEnum = Field(..., description="¿Aprobó la evaluación?")
     requiere_entrenamiento: Optional[str] = Field(None, description="Temas que requieren entrenamiento")
 
 class EvaluationCreate(BaseModel):
+    """Datos para crear una nueva evaluación"""
     user_data: UserData
     procedure_codigo: str = Field(..., description="Código del procedimiento")
     knowledge_answers: List[KnowledgeAnswer]
     applied_knowledge: AppliedKnowledgeData
     feedback: FeedbackData
 
-class EvaluationResponse(BaseModel):
-    evaluation_id: int
-    message: str
-    status: str
+# =============================================================================
+# MODELOS DE RESPUESTA
+# =============================================================================
 
-# Modelos de respuesta
+class EvaluationResponse(BaseModel):
+    """Respuesta al crear evaluación"""
+    evaluation_id: str
+    message: str
+    success: bool
+
 class AnswerResult(BaseModel):
+    """Resultado detallado de una respuesta"""
     question_id: int
     question_text: str
     selected_option: str
@@ -104,51 +127,75 @@ class AnswerResult(BaseModel):
     is_correct: bool
 
 class EvaluationResults(BaseModel):
-    evaluation_id: int
+    """Resultados completos de una evaluación"""
+    evaluation_id: str
     user_name: str
-    procedure_name: str
+    user_cargo: str
+    user_campo: str
     procedure_codigo: str
+    procedure_name: str
     total_questions: int
     correct_answers: int
     score_percentage: float
     answers: List[AnswerResult]
     applied_knowledge: AppliedKnowledgeData
     feedback: FeedbackData
-    completed_at: Optional[datetime]
+    completed_at: str
 
-# Modelos para procedimientos
-class ProcedureWithQuestions(BaseModel):
-    procedure: Procedure
-    questions: List[QuestionWithRandomizedOptions]
+# =============================================================================
+# MODELOS AUXILIARES
+# =============================================================================
 
-class ProcedureSearch(BaseModel):
-    query: str = Field(..., min_length=1, description="Código o nombre a buscar")
-
-class ProcedureList(BaseModel):
-    procedures: List[Procedure]
-    total: int
-
-# Respuestas de la API
 class APIResponse(BaseModel):
+    """Respuesta genérica de la API"""
     success: bool
     message: str
     data: Optional[Any] = None
 
 class ErrorResponse(BaseModel):
+    """Respuesta de error"""
     success: bool = False
     message: str
     error_code: Optional[str] = None
 
-# Modelos de estadísticas (para futuro)
-class EvaluationStats(BaseModel):
-    total_evaluations: int
-    average_score: float
-    completion_rate: float
-    most_failed_questions: List[Dict[str, Any]]
+class HealthCheck(BaseModel):
+    """Estado de salud de la API"""
+    status: str
+    excel_files: Dict[str, bool]
+    timestamp: str
+
+# =============================================================================
+# MODELOS DE ESTADÍSTICAS
+# =============================================================================
 
 class ProcedureStats(BaseModel):
+    """Estadísticas de un procedimiento"""
     procedure_codigo: str
     procedure_name: str
     total_evaluations: int
     average_score: float
-    last_evaluation: Optional[datetime]
+    approval_rate: float
+
+class SystemStats(BaseModel):
+    """Estadísticas generales del sistema"""
+    total_procedures: int
+    total_evaluations: int
+    total_questions: int
+    average_score: float
+    most_evaluated_procedure: Optional[str]
+    procedures_stats: List[ProcedureStats]
+
+# =============================================================================
+# MODELOS DE CONFIGURACIÓN
+# =============================================================================
+
+class FormTexts(BaseModel):
+    """Textos del formulario"""
+    section: str
+    texts: Dict[str, str]
+
+class SystemConfig(BaseModel):
+    """Configuración del sistema"""
+    excel_files: Dict[str, str]
+    validation_rules: Dict[str, Any]
+    form_texts: Dict[str, Any]

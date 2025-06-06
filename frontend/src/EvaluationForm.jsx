@@ -1,12 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 const EvaluationForm = () => {
   const [currentStep, setCurrentStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [procedures, setProcedures] = useState([])
+  const [selectedProcedure, setSelectedProcedure] = useState(null)
+  const [questions, setQuestions] = useState([])
+  
   const [formData, setFormData] = useState({
     // Datos del usuario
     nombre: '',
     cargo: '',
     campo: '',
+    
+    // Procedimiento seleccionado
+    procedure_codigo: '',
     
     // Respuestas de conocimiento
     answers: {},
@@ -28,65 +37,67 @@ const EvaluationForm = () => {
     }
   })
 
-  // Preguntas de ejemplo (se reemplazarán con datos reales)
-  const sampleQuestions = [
-    {
-      id: 1,
-      question: "¿Cuál es el primer paso antes de iniciar cualquier procedimiento operativo?",
-      options: [
-        "Verificar las condiciones de seguridad",
-        "Revisar el manual técnico",
-        "Contactar al supervisor",
-        "Preparar las herramientas"
-      ]
-    },
-    {
-      id: 2,
-      question: "¿Qué elementos de protección personal son obligatorios en todas las operaciones?",
-      options: [
-        "Casco, gafas, guantes y calzado de seguridad",
-        "Solo casco y guantes",
-        "Depende del procedimiento",
-        "Uniforme completo"
-      ]
-    },
-    {
-      id: 3,
-      question: "En caso de emergencia durante un procedimiento, ¿cuál es la primera acción a tomar?",
-      options: [
-        "Detener inmediatamente la operación",
-        "Completar el procedimiento rápidamente",
-        "Llamar al jefe de turno",
-        "Documentar el incidente"
-      ]
-    },
-    {
-      id: 4,
-      question: "¿Con qué frecuencia se deben revisar los P&ID del procedimiento?",
-      options: [
-        "Antes de cada ejecución del procedimiento",
-        "Una vez por semana",
-        "Solo cuando hay cambios",
-        "Mensualmente"
-      ]
-    },
-    {
-      id: 5,
-      question: "¿Qué información debe contener obligatoriamente un reporte de incidente?",
-      options: [
-        "Fecha, hora, descripción detallada y acciones tomadas",
-        "Solo la descripción del problema",
-        "Únicamente las acciones correctivas",
-        "El nombre del responsable"
-      ]
+  // Configuración de la API
+  const API_BASE_URL = 'http://localhost:8000/api/v1'
+
+  // Cargar procedimientos al iniciar
+  useEffect(() => {
+    loadProcedures()
+  }, [])
+
+  const loadProcedures = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/procedures`)
+      
+      if (!response.ok) {
+        throw new Error('Error cargando procedimientos')
+      }
+      
+      const data = await response.json()
+      setProcedures(data.procedures || [])
+      
+    } catch (error) {
+      console.error('Error cargando procedimientos:', error)
+      setError('Error cargando procedimientos. Verifique que el servidor esté funcionando.')
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  const loadQuestions = async (procedureCode) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/procedures/${procedureCode}/questions`)
+      
+      if (!response.ok) {
+        throw new Error('Error cargando preguntas')
+      }
+      
+      const data = await response.json()
+      setSelectedProcedure(data.procedure)
+      setQuestions(data.questions || [])
+      
+    } catch (error) {
+      console.error('Error cargando preguntas:', error)
+      setError('Error cargando preguntas para este procedimiento.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
+  }
+
+  const handleProcedureChange = async (procedureCode) => {
+    handleInputChange('procedure_codigo', procedureCode)
+    if (procedureCode) {
+      await loadQuestions(procedureCode)
+    }
   }
 
   const handleAnswerChange = (questionId, answer) => {
@@ -121,20 +132,92 @@ const EvaluationForm = () => {
 
   const nextStep = () => {
     setCurrentStep(prev => prev + 1)
+    setError('')
   }
 
   const prevStep = () => {
     setCurrentStep(prev => prev - 1)
+    setError('')
   }
 
-  const submitForm = () => {
-    console.log('Datos del formulario:', formData)
-    alert('Evaluación completada exitosamente!\n\n(Los datos se muestran en la consola del navegador)')
+  const submitForm = async () => {
+    try {
+      setLoading(true)
+      
+      // Preparar datos para envío
+      const evaluationData = {
+        user_data: {
+          nombre: formData.nombre,
+          cargo: formData.cargo,
+          campo: formData.campo
+        },
+        procedure_codigo: formData.procedure_codigo,
+        knowledge_answers: Object.entries(formData.answers).map(([questionId, selectedOption]) => ({
+          question_id: parseInt(questionId),
+          selected_option: selectedOption
+        })),
+        applied_knowledge: formData.applied,
+        feedback: formData.feedback
+      }
+
+      const response = await fetch(`${API_BASE_URL}/evaluations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(evaluationData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Error enviando evaluación')
+      }
+
+      const result = await response.json()
+      
+      alert(`¡Evaluación completada exitosamente!\n\nID de evaluación: ${result.evaluation_id}\n\nLos resultados han sido guardados en Excel.`)
+      
+      // Reiniciar formulario
+      setCurrentStep(1)
+      setFormData({
+        nombre: '',
+        cargo: '',
+        campo: '',
+        procedure_codigo: '',
+        answers: {},
+        applied: {
+          describio_procedimiento: false,
+          identifico_riesgos: false,
+          identifico_epp: false,
+          describio_incidentes: false
+        },
+        feedback: {
+          hizo_sugerencia: '',
+          cual_sugerencia: '',
+          aprobo: '',
+          requiere_entrenamiento: ''
+        }
+      })
+      setSelectedProcedure(null)
+      setQuestions([])
+      
+    } catch (error) {
+      console.error('Error enviando evaluación:', error)
+      setError(`Error enviando evaluación: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderUserData = () => (
     <div className="form-container">
       <h2 className="section-title">Datos del Usuario</h2>
+      
+      {error && (
+        <div style={{color: 'red', marginBottom: '1rem', padding: '0.5rem', background: '#ffe6e6', borderRadius: '4px'}}>
+          {error}
+        </div>
+      )}
       
       <div className="form-group">
         <label>Nombre:</label>
@@ -170,10 +253,27 @@ const EvaluationForm = () => {
         </select>
       </div>
 
+      <div className="form-group">
+        <label>Procedimiento:</label>
+        <select
+          value={formData.procedure_codigo}
+          onChange={(e) => handleProcedureChange(e.target.value)}
+          disabled={loading}
+        >
+          <option value="">Seleccione un procedimiento</option>
+          {procedures.map((proc) => (
+            <option key={proc.codigo} value={proc.codigo}>
+              {proc.codigo} - {proc.nombre}
+            </option>
+          ))}
+        </select>
+        {loading && <p style={{color: '#667eea', fontSize: '0.9rem'}}>Cargando...</p>}
+      </div>
+
       <button 
         className="btn" 
         onClick={nextStep}
-        disabled={!formData.nombre || !formData.cargo || !formData.campo}
+        disabled={!formData.nombre || !formData.cargo || !formData.campo || !formData.procedure_codigo || loading}
       >
         Continuar a Evaluación de Conocimiento
       </button>
@@ -188,9 +288,18 @@ const EvaluationForm = () => {
         que aporta al colaborador. Este documento garantiza que el personal cuente con los 
         conocimientos técnicos necesarios para ejecutar las actividades de manera adecuada, 
         asegurando el cumplimiento de las Guías de Entrenamiento y evaluación, y fortaleciendo el 
-        proceso de comunicación del procedimiento <strong>(CODIGO-NOMBRE)</strong>.
+        proceso de comunicación del procedimiento{' '}
+        <strong>({selectedProcedure?.codigo} - {selectedProcedure?.nombre})</strong>.
       </p>
-      <button className="btn" onClick={nextStep}>
+      
+      {selectedProcedure?.alcance && (
+        <div style={{marginTop: '1rem'}}>
+          <h3 style={{fontSize: '1.1rem', marginBottom: '0.5rem'}}>2. Desarrollo:</h3>
+          <p style={{fontStyle: 'italic', color: '#666'}}>{selectedProcedure.alcance}</p>
+        </div>
+      )}
+      
+      <button className="btn" onClick={nextStep} style={{marginTop: '1.5rem'}}>
         Continuar
       </button>
     </div>
@@ -203,27 +312,42 @@ const EvaluationForm = () => {
         Responda las siguientes preguntas, en caso de dudas consulte con su supervisor:
       </p>
 
-      {sampleQuestions.map((question, index) => (
-        <div key={question.id} className="question-container">
-          <div className="question-text">
-            {index + 1}. {question.question}
-          </div>
-          
-          {question.options.map((option, optionIndex) => (
-            <div key={optionIndex} className="option">
-              <label>
-                <input
-                  type="radio"
-                  name={`question_${question.id}`}
-                  value={optionIndex}
-                  onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                />
-                {String.fromCharCode(65 + optionIndex)}. {option}
-              </label>
+      {loading ? (
+        <p style={{textAlign: 'center', color: '#667eea'}}>Cargando preguntas...</p>
+      ) : questions.length === 0 ? (
+        <p style={{textAlign: 'center', color: '#ff6b6b'}}>
+          No se encontraron preguntas para este procedimiento.
+        </p>
+      ) : (
+        questions.map((question, index) => (
+          <div key={question.id} className="question-container">
+            <div className="question-text">
+              {index + 1}. {question.question_text}
             </div>
-          ))}
+            
+            {question.options.map((option, optionIndex) => (
+              <div key={optionIndex} className="option">
+                <label>
+                  <input
+                    type="radio"
+                    name={`question_${question.id}`}
+                    value={String.fromCharCode(65 + optionIndex)}
+                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                    checked={formData.answers[question.id] === String.fromCharCode(65 + optionIndex)}
+                  />
+                  {String.fromCharCode(65 + optionIndex)}. {option}
+                </label>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
+
+      {error && (
+        <div style={{color: 'red', marginBottom: '1rem', padding: '0.5rem', background: '#ffe6e6', borderRadius: '4px'}}>
+          {error}
         </div>
-      ))}
+      )}
 
       <div style={{display: 'flex', gap: '1rem'}}>
         <button className="btn" onClick={prevStep} style={{background: '#6c757d'}}>
@@ -232,7 +356,7 @@ const EvaluationForm = () => {
         <button 
           className="btn" 
           onClick={nextStep}
-          disabled={Object.keys(formData.answers).length < sampleQuestions.length}
+          disabled={Object.keys(formData.answers).length < questions.length || questions.length === 0}
         >
           Continuar a Conocimiento Aplicado
         </button>
@@ -245,7 +369,7 @@ const EvaluationForm = () => {
       <h2 className="section-title">2.4. Evaluación de Conocimiento Aplicado</h2>
       <p style={{marginBottom: '1.5rem', color: '#666'}}>
         Ubique en la carpeta OneDrive (Procedimientos CUS-CUP-FLO) con acceso compartido el 
-        procedimiento (Código-nombre) y siga las indicaciones descritas a continuación:
+        procedimiento ({selectedProcedure?.codigo} - {selectedProcedure?.nombre}) y siga las indicaciones descritas a continuación:
       </p>
 
       <div className="checkbox-group">
@@ -354,6 +478,12 @@ const EvaluationForm = () => {
         />
       </div>
 
+      {error && (
+        <div style={{color: 'red', marginBottom: '1rem', padding: '0.5rem', background: '#ffe6e6', borderRadius: '4px'}}>
+          {error}
+        </div>
+      )}
+
       <div style={{display: 'flex', gap: '1rem'}}>
         <button className="btn" onClick={prevStep} style={{background: '#6c757d'}}>
           Anterior
@@ -361,13 +491,21 @@ const EvaluationForm = () => {
         <button 
           className="btn" 
           onClick={submitForm}
-          disabled={!formData.feedback.hizo_sugerencia || !formData.feedback.aprobo}
+          disabled={!formData.feedback.hizo_sugerencia || !formData.feedback.aprobo || loading}
         >
-          Completar Evaluación
+          {loading ? 'Enviando...' : 'Completar Evaluación'}
         </button>
       </div>
     </div>
   )
+
+  if (loading && currentStep === 1) {
+    return (
+      <div className="form-container">
+        <div className="loading">Cargando sistema...</div>
+      </div>
+    )
+  }
 
   return (
     <>
