@@ -103,18 +103,37 @@ class ExcelHandler:
             # Leer hoja de preguntas
             df = pd.read_excel(self.data_file, sheet_name=DATA_SHEETS["questions"]["name"])
             
+            # DEBUG: Información detallada
+            print(f"🔍 DEBUG - Buscando preguntas para: '{procedure_codigo}'")
+            print(f"🔍 DEBUG - Columnas Excel: {list(df.columns)}")
+            print(f"🔍 DEBUG - Total filas: {len(df)}")
+            print(f"🔍 DEBUG - Configuración columna procedure_codigo: {QUESTIONS_COLUMNS['procedure_codigo']}")
+            print(f"🔍 DEBUG - Índice columna: {self._get_col_index(QUESTIONS_COLUMNS['procedure_codigo'])}")
+            
+            # Mostrar primeras 3 filas de la columna procedure_codigo
+            if not df.empty:
+                proc_col_index = self._get_col_index(QUESTIONS_COLUMNS["procedure_codigo"])
+                print(f"🔍 DEBUG - Primeros valores columna A:")
+                for i in range(min(3, len(df))):
+                    val = str(df.iloc[i, proc_col_index]).strip()
+                    print(f"   Fila {i+2}: '{val}' (tipo: {type(df.iloc[i, proc_col_index])})")
+            
             questions = []
             question_id = 1
             
             for index, row in df.iterrows():
                 # Saltar filas vacías
                 if pd.isna(row.iloc[0]) or str(row.iloc[0]).strip() == "":
+                    print(f"🔍 DEBUG - Saltando fila vacía {index + 2}")
                     continue
                 
                 try:
                     row_procedure_codigo = str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["procedure_codigo"])]).strip()
+                    print(f"🔍 DEBUG - Fila {index + 2}: Comparando '{row_procedure_codigo}' vs '{procedure_codigo}'")
                     
                     if row_procedure_codigo.upper() == procedure_codigo.upper():
+                        print(f"🔍 DEBUG - ¡MATCH! Procesando pregunta de fila {index + 2}")
+                        
                         question = {
                             "id": question_id,
                             "procedure_codigo": row_procedure_codigo,
@@ -123,14 +142,20 @@ class ExcelHandler:
                             "option_b": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_b"])]).strip(),
                             "option_c": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_c"])]).strip(),
                             "option_d": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_d"])]).strip(),
-                            "correct_answer": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["correct_answer"])]).strip().upper()
+                            "correct_answer": "A"  # ← SIEMPRE A, ya que Option_A es la correcta
                         }
                         
+                        print(f"🔍 DEBUG - Pregunta creada: {question}")
+                        
                         # Validar que la pregunta esté completa
-                        if (question["question_text"] and question["question_text"] != "nan" and
-                            question["correct_answer"] in VALID_OPTIONS):
+                        if (question["question_text"] and question["question_text"] != "nan"):
                             questions.append(question)
                             question_id += 1
+                            print(f"🔍 DEBUG - Pregunta añadida exitosamente")
+                        else:
+                            print(f"🔍 DEBUG - Pregunta rechazada: question_text inválido")
+                    else:
+                        print(f"🔍 DEBUG - No match: '{row_procedure_codigo}' != '{procedure_codigo}'")
                             
                 except Exception as e:
                     print(f"⚠️ Error procesando pregunta en fila {index + 2}: {e}")

@@ -74,8 +74,7 @@ QUESTIONS_COLUMNS = {
     "option_a": "C",         # Opción A
     "option_b": "D",         # Opción B
     "option_c": "E",         # Opción C
-    "option_d": "F",         # Opción D
-    "correct_answer": "G"    # Respuesta correcta (A, B, C, o D)
+    "option_d": "F"         # Opción D
 }
 
 # =============================================================================

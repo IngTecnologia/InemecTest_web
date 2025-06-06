@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
     volumes:
       # Montar directorio de datos para persistencia de Excel
-      - ./data:/app/data
+      - ./backend/data:/app/data
       # Opcional: logs
       - ./logs:/app/logs
     environment:

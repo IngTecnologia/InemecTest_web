@@ -34,7 +34,7 @@ ENV ENVIRONMENT=production
 EXPOSE 8000
 
 # Verificar que la aplicación se puede importar
-RUN python -c "import src.main"
+RUN python -c "import main"
 
 # Comando de inicio
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
