@@ -1,3 +1,4 @@
+
 version: '3.8'
 
 services:
@@ -32,6 +33,12 @@ services:
     environment:
       - PYTHONPATH=/app
       - ENVIRONMENT=production
+      # NUEVAS VARIABLES - Módulo Admin
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ADMIN_ENABLED=true
+      - PROCEDURES_SOURCE_DIR=data/procedures_source
+      - GENERATION_BATCH_SIZE=5
+      - MAX_RETRIES=3
     networks:
       - inemectest-network
 

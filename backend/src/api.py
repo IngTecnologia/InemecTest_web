@@ -8,8 +8,13 @@ import random
 
 from .models import *
 from .excel_handler import ExcelHandler
+# NUEVO: Importar router admin
+from .admin.api import admin_router
 
 router = APIRouter()
+
+# Incluir router admin
+router.include_router(admin_router)
 
 # Inicializar handler de Excel
 excel_handler = ExcelHandler()
