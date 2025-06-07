@@ -16,9 +16,9 @@ function AdminPage() {
           <ul>
             <li>Escaneo de procedimientos</li>
             <li>Generación automática de preguntas</li>
-            <li>Validación por expertos</li>
+            <li>Validación por bots expertos</li>
             <li>Corrección automática</li>
-            <li>Sincronización con Excel</li>
+            <li>Sincronización con Excel Maestro</li>
           </ul>
           <a href="/" className="btn-back">← Volver al Portal de Evaluación</a>
         </div>

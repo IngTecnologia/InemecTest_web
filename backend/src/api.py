@@ -1,5 +1,7 @@
+
 """
 API endpoints para InemecTest - Versión corregida con manejo de randomización
+Integración completa con módulo administrativo
 """
 
 from fastapi import APIRouter, HTTPException, Query
@@ -8,12 +10,12 @@ import random
 
 from .models import *
 from .excel_handler import ExcelHandler
-# NUEVO: Importar router admin
+# INTEGRACIÓN: Importar router admin
 from .admin.api import admin_router
 
 router = APIRouter()
 
-# Incluir router admin
+# INTEGRACIÓN: Incluir router admin con todos sus endpoints
 router.include_router(admin_router)
 
 # Inicializar handler de Excel

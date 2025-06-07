@@ -2,6 +2,10 @@ import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import EvaluationForm from '../components/evaluation/EvaluationForm.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+import AdminOverviewPage from './pages/AdminOverviewPage.jsx'
+import AdminQueuePage from './pages/AdminQueuePage.jsx'
+import AdminMonitorPage from './pages/AdminMonitorPage.jsx'
+import AdminConfigPage from './pages/AdminConfigPage.jsx'
 
 function App() {
   return (
@@ -15,7 +19,14 @@ function App() {
           <EvaluationForm />
         </div>
       } />
-      <Route path="/admin" element={<AdminPage />} />
+      
+      {/* Rutas del módulo administrativo */}
+      <Route path="/admin" element={<AdminPage />}>
+        <Route index element={<AdminOverviewPage />} />
+        <Route path="queue" element={<AdminQueuePage />} />
+        <Route path="monitor" element={<AdminMonitorPage />} />
+        <Route path="config" element={<AdminConfigPage />} />
+      </Route>
     </Routes>
   )
 }
