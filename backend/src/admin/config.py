@@ -4,7 +4,9 @@ Incluye system messages, configuraciones y constantes
 """
 
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+import json
+from pathlib import Path
 
 # =============================================================================
 # CONFIGURACIÓN DE OPENAI Y GENERACIÓN
@@ -387,22 +389,28 @@ CORRECTOR_CONFIG = {
 # CONFIGURACIÓN DE DIRECTORIOS Y ARCHIVOS
 # =============================================================================
 
+
+BASE_DATA_DIR = Path("backend/data")
 # Directorios del módulo admin
 ADMIN_DIRECTORIES = {
-    "procedures_source": os.getenv("PROCEDURES_SOURCE_DIR", "backend/data/procedures_source"),
-    "tracking": "data/admin_tracking",
-    "backups": "data/admin_backups",
-    "temp": "data/admin_temp",
+    "procedures_source": os.getenv("PROCEDURES_SOURCE_DIR", str(BASE_DATA_DIR / "procedures_source")),
+    "tracking": str(BASE_DATA_DIR / "admin_tracking"),
+    "backups": str(BASE_DATA_DIR / "admin_backups"), 
+    "temp": str(BASE_DATA_DIR / "admin_temp"),
     "logs": "logs/admin"
 }
 
 # Archivos de tracking y control
 ADMIN_FILES = {
-    "tracking": "data/question_generation_tracking.json",
-    "processing_queue": "data/admin_processing_queue.json",
-    "validation_results": "data/admin_validation_results.json",
-    "correction_log": "data/admin_correction_log.json",
-    "generation_stats": "data/admin_generation_stats.json"
+    "tracking": str(BASE_DATA_DIR / "question_generation_tracking.json"),
+    "processing_queue": str(BASE_DATA_DIR / "admin_processing_queue.json"),
+    "validation_results": str(BASE_DATA_DIR / "admin_validation_results.json"),
+    "correction_log": str(BASE_DATA_DIR / "admin_correction_log.json"),
+    "generation_stats": str(BASE_DATA_DIR / "admin_generation_stats.json"),
+    # ARCHIVOS PRINCIPALES
+    "generated_questions": str(BASE_DATA_DIR / "generated_questions.json"),
+    "excel_data": str(BASE_DATA_DIR / "procedimientos_y_preguntas.xlsx"),
+    "excel_results": str(BASE_DATA_DIR / "resultados_evaluaciones.xlsx")
 }
 
 # =============================================================================
@@ -473,6 +481,53 @@ MAX_PROCESSING_TIME_MINUTES = 60
 # FUNCIONES DE CONFIGURACIÓN
 # =============================================================================
 
+def ensure_admin_directories():
+    """Crear todos los directorios necesarios para el módulo admin"""
+    try:
+        # Crear directorio base
+        BASE_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        
+        # Crear subdirectorios
+        for key, path in ADMIN_DIRECTORIES.items():
+            Path(path).mkdir(parents=True, exist_ok=True)
+            
+        print(f"✅ Directorios admin creados en: {BASE_DATA_DIR}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error creando directorios admin: {e}")
+        return False
+    
+def get_admin_file_path(file_key: str) -> Path:
+    """
+    Obtener ruta de archivo del módulo admin
+    
+    Args:
+        file_key: Clave del archivo en ADMIN_FILES
+        
+    Returns:
+        Path del archivo
+    """
+    if file_key not in ADMIN_FILES:
+        raise ValueError(f"Archivo no encontrado: {file_key}")
+    
+    return Path(ADMIN_FILES[file_key])
+
+def get_admin_directory_path(dir_key: str) -> Path:
+    """
+    Obtener ruta de directorio del módulo admin
+    
+    Args:
+        dir_key: Clave del directorio en ADMIN_DIRECTORIES
+        
+    Returns:
+        Path del directorio
+    """
+    if dir_key not in ADMIN_DIRECTORIES:
+        raise ValueError(f"Directorio no encontrado: {dir_key}")
+    
+    return Path(ADMIN_DIRECTORIES[dir_key])
+
 def get_system_message(component: str) -> str:
     """
     Obtener system message para un componente específico
@@ -511,32 +566,26 @@ def get_enabled_validators() -> List[str]:
     return [name for name, config in VALIDATORS_CONFIG.items() if config["enabled"]]
 
 def validate_admin_config() -> bool:
-    """
-    Validar configuración del módulo admin
-    """
+    """Validar configuración del módulo admin"""
     try:
-        # Verificar API key
+        print("🔧 Validando configuración del módulo admin...")
+        
+        # Verificar OpenAI API key
         if not get_openai_api_key():
-            print("⚠️ OPENAI_API_KEY no está configurado")
-            return False
+            print("⚠️ OpenAI API Key no configurado (requerido para generación)")
         
-        # Verificar que hay al menos un validador habilitado
-        enabled_validators = get_enabled_validators()
-        if not enabled_validators:
-            print("⚠️ No hay validadores habilitados")
-            return False
+        # Crear directorios necesarios
+        ensure_admin_directories()
         
-        # Verificar directorios críticos
-        procedures_dir = ADMIN_DIRECTORIES["procedures_source"]
-        if not os.path.exists(procedures_dir):
-            print(f"⚠️ Directorio de procedimientos no existe: {procedures_dir}")
-            # No es crítico, se puede crear automáticamente
+        # Verificar archivos existentes
+        for key, path in ADMIN_FILES.items():
+            file_path = Path(path)
+            if file_path.exists():
+                print(f"✅ {key}: {path}")
+            else:
+                print(f"📝 {key}: {path} (será creado)")
         
-        print("✅ Configuración del módulo admin válida")
-        print(f"   - Validadores habilitados: {enabled_validators}")
-        print(f"   - Directorio de procedimientos: {procedures_dir}")
-        print(f"   - Modelo OpenAI: {GENERATION_CONFIG['openai_model']}")
-        
+        print("✅ Configuración admin validada")
         return True
         
     except Exception as e:
