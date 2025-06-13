@@ -1,0 +1,117 @@
+[
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuál es el primer paso para calibrar las válvulas motrices en el motor superior?",
+    "opciones": [
+      "Retirar guarda del volante",
+      "Colocar la unidad en tiempo",
+      "Calibrar la válvula de admisión",
+      "Verificar el estado del sistema de ignición"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "Durante el mantenimiento, el operador encuentra presión en el compresor. ¿Qué debe hacer?",
+    "opciones": [
+      "Comunicar al supervisor y no iniciar la actividad",
+      "Continuar con el procedimiento",
+      "Cerrar las válvulas de venteo",
+      "Ajustar las tuercas de las tapas"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué medida de torque se aplica a los espárragos de 1\"?",
+    "opciones": [
+      "260 a 290 lb-pie",
+      "200 a 220 lb-pie",
+      "270 a 410 lb-pie",
+      "325 lb-pie"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "Un error común es no verificar la ausencia de presión. ¿Qué paso es crucial para evitarlo?",
+    "opciones": [
+      "Verificar puntos de venteo abiertos",
+      "Calibrar válvulas motrices",
+      "Retirar guarda del volante",
+      "Instalar la tapa de la vasija de filtros"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué herramienta se utiliza para aflojar la tuerca de balance en empaquetaduras HE?",
+    "opciones": [
+      "Herramienta R14",
+      "Extractor de válvulas",
+      "Multímetro",
+      "Goniómetro"
+    ],
+    "historial_revision": []
+  }
+]

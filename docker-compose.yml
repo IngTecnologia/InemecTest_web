@@ -1,0 +1,51 @@
+
+version: '3.8'
+
+services:
+  # Frontend con Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    container_name: inemectest-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - inemectest-network
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    container_name: inemectest-backend
+    restart: unless-stopped
+    volumes:
+      # Montar directorio de datos para persistencia de Excel
+      - ./backend/data:/app/data
+      # Opcional: logs
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      # NUEVAS VARIABLES - Módulo Admin
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ADMIN_ENABLED=true
+      - PROCEDURES_SOURCE_DIR=data/procedures_source
+      - GENERATION_BATCH_SIZE=5
+      - MAX_RETRIES=3
+    networks:
+      - inemectest-network
+
+volumes:
+  # Volumen para datos Excel (opcional, ya se usa bind mount)
+  excel_data:
+
+networks:
+  inemectest-network:
+    driver: bridge

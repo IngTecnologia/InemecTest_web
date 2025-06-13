@@ -1,0 +1,117 @@
+[
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuál es el primer paso para el cambio de válvulas compresoras?",
+    "opciones": [
+      "Verificar la ausencia de presión en el compresor",
+      "Retirar la tapa de la válvula",
+      "Aflojar las tuercas de las tapas de válvulas",
+      "Instalar la herramienta extractora"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "Durante el mantenimiento, detectas presión en el compresor. ¿Qué acción debes tomar?",
+    "opciones": [
+      "Comunicar al supervisor y no iniciar la actividad",
+      "Continuar con el procedimiento",
+      "Aflojar las tuercas de las tapas de válvulas",
+      "Instalar la herramienta extractora"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué herramienta se utiliza para retirar la válvula compresora?",
+    "opciones": [
+      "Herramienta extractora",
+      "Llave de torque",
+      "Multímetro",
+      "Calibrador de bujías"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "Un error común es no verificar la presión antes de retirar las válvulas. ¿Qué puede ocurrir?",
+    "opciones": [
+      "Riesgo de accidente por presión atrapada",
+      "Mejora en la eficiencia del compresor",
+      "Reducción del tiempo de mantenimiento",
+      "Aumento de la vida útil de las válvulas"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuál es el torque recomendado para las tuercas de 1\" en las válvulas compresoras?",
+    "opciones": [
+      "260 a 290 lb-pie",
+      "200 a 220 lb-pie",
+      "270 a 410 lb-pie",
+      "150 a 180 lb-pie"
+    ],
+    "historial_revision": []
+  }
+]

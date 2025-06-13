@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InemecTest - Sistema de Evaluación</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #8e8e8e 0%, #707070 100%);
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 2rem;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      }
+
+      .header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+
+      .form-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        padding: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #333;
+      }
+
+      input, select, textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s ease;
+      }
+
+      input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #ed0c32;
+        box-shadow: 0 0 0 3px rgba(195, 20, 50, 0.1);
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #ed0c32 0%, #cc0101 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        width: 100%;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(195, 20, 50, 0.3);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .section-title {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #ed0c32;
+      }
+
+      .question-container {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e9ecef;
+      }
+
+      .question-text {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #333;
+      }
+
+      .option {
+        margin-bottom: 0.75rem;
+      }
+
+      .option label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        font-weight: normal;
+      }
+
+      .option input[type="radio"] {
+        width: auto;
+        margin-right: 0.5rem;
+        accent-color: #c31432;
+      }
+
+      .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .checkbox-group input[type="checkbox"] {
+        width: auto;
+        margin-right: 0.5rem;
+        accent-color: #c31432;
+      }
+
+      .checkbox-group label {
+        font-weight: normal;
+        margin-bottom: 0;
+        cursor: pointer;
+      }
+
+      .loading {
+        text-align: center;
+        color: #c31432;
+        font-size: 1.2rem;
+        margin: 2rem 0;
+      }
+
+      /* Dropdown styles */
+      .dropdown-container {
+        position: relative;
+      }
+
+      .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 2px;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .dropdown-item {
+        padding: 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s ease;
+      }
+
+      .dropdown-item:last-child {
+        border-bottom: none;
+      }
+
+      .dropdown-item:hover {
+        background-color: #f8f9fa;
+      }
+
+      .dropdown-item strong {
+        color: #ed0c32;
+      }
+
+      /* Error message styles */
+      .error-message {
+        color: #dc3545;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 4px;
+        font-size: 0.9rem;
+      }
+
+      /* Button variants */
+      .btn-secondary {
+        background: #6c757d;
+      }
+
+      .btn-secondary:hover {
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+      }
+
+      /* Responsive design */
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        .form-container {
+          padding: 1.5rem;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .btn {
+          padding: 0.875rem 1.5rem;
+        }
+      }
+
+      /* Loading spinner */
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #ed0c32;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      /* Success message */
+      .success-message {
+        color: #155724;
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 0.75rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
