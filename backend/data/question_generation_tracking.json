@@ -3,72 +3,52 @@
     "CODIGO: PEP-PRO-1141_v2": {
       "codigo": "CODIGO: PEP-PRO-1141",
       "version": "2",
-      "fecha_generacion": "2025-06-13T16:10:25.965330",
+      "fecha_generacion": "2025-06-16T17:57:43.826670",
       "preguntas_count": 5,
       "status": "completed",
       "batch_info": {
-        "batch_id": "batch_PEP-PRO-1141 V.2_1_20250613_160911",
+        "batch_id": "batch_PEP-PRO-1141 V.2_1_20250616_175621",
         "preguntas": 5,
-        "validation_score": 0.6666666666666666,
+        "validation_score": 0.8666666666666666,
         "sync_success": true,
         "excel_file": "data/procedimientos_y_preguntas.xlsx",
-        "completed_at": "2025-06-13T16:10:25.962570"
+        "completed_at": "2025-06-16T17:57:43.824390"
       }
     }
   },
   "last_scan": {
-    "timestamp": "2025-06-16T17:19:14.506255",
+    "timestamp": "2025-06-16T17:57:53.052844",
     "archivos_escaneados": 1,
     "procedimientos_en_cola": 1
   },
   "scan_history": [
     {
-      "timestamp": "2025-06-13T19:21:25.222005",
+      "timestamp": "2025-06-16T17:55:46.015325",
       "archivos_escaneados": 1,
       "procedimientos_en_cola": 1
     },
     {
-      "timestamp": "2025-06-13T19:21:25.439530",
+      "timestamp": "2025-06-16T17:55:56.750763",
       "archivos_escaneados": 1,
       "procedimientos_en_cola": 1
     },
     {
-      "timestamp": "2025-06-13T21:38:48.401324",
+      "timestamp": "2025-06-16T17:56:01.207565",
       "archivos_escaneados": 1,
       "procedimientos_en_cola": 1
     },
     {
-      "timestamp": "2025-06-13T21:38:51.991052",
+      "timestamp": "2025-06-16T17:56:01.402825",
       "archivos_escaneados": 1,
       "procedimientos_en_cola": 1
     },
     {
-      "timestamp": "2025-06-13T21:38:52.389812",
+      "timestamp": "2025-06-16T17:57:52.807037",
       "archivos_escaneados": 1,
       "procedimientos_en_cola": 1
     },
     {
-      "timestamp": "2025-06-16T17:19:03.830450",
-      "archivos_escaneados": 1,
-      "procedimientos_en_cola": 1
-    },
-    {
-      "timestamp": "2025-06-16T17:19:04.052525",
-      "archivos_escaneados": 1,
-      "procedimientos_en_cola": 1
-    },
-    {
-      "timestamp": "2025-06-16T17:19:04.276566",
-      "archivos_escaneados": 1,
-      "procedimientos_en_cola": 1
-    },
-    {
-      "timestamp": "2025-06-16T17:19:04.485198",
-      "archivos_escaneados": 1,
-      "procedimientos_en_cola": 1
-    },
-    {
-      "timestamp": "2025-06-16T17:19:14.506255",
+      "timestamp": "2025-06-16T17:57:53.052844",
       "archivos_escaneados": 1,
       "procedimientos_en_cola": 1
     }

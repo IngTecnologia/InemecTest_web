@@ -1,0 +1,123 @@
+[
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuál es el primer paso del procedimiento de prueba?",
+    "opciones": [
+      "Verificar condiciones iniciales",
+      "Iniciar operación directamente",
+      "Contactar supervisor",
+      "Revisar documentación"
+    ],
+    "historial_revision": [
+      "Versión original (2025-06-16T17:57:37.653828): ¿Cuál es el primer paso para calibrar las válvulas motrices en el motor superior?",
+      "Corrección automática (2025-06-16T17:57:37.653855): Sin cambios necesarios"
+    ]
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "Durante el mantenimiento, el operador detecta presión en el compresor. ¿Qué debe hacer antes de continuar?",
+    "opciones": [
+      "Comunicar al supervisor y no iniciar la actividad.",
+      "Proceder con el cambio de válvulas.",
+      "Ajustar las tuercas de la tapa.",
+      "Instalar la herramienta extractora."
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué herramienta se utiliza para retirar la válvula compresora?",
+    "opciones": [
+      "Extractor de válvulas compresoras.",
+      "Llave de torque.",
+      "Multímetro.",
+      "Calibrador de bujías."
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "Un error común es no verificar la presión antes de retirar las válvulas. ¿Qué puede ocurrir?",
+    "opciones": [
+      "Presión atrapada puede causar accidentes.",
+      "El compresor puede sobrecalentarse.",
+      "Las válvulas pueden dañarse.",
+      "El aceite puede contaminarse."
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuál es el primer paso del procedimiento de prueba?",
+    "opciones": [
+      "Verificar condiciones iniciales",
+      "Iniciar operación directamente",
+      "Contactar supervisor",
+      "Revisar documentación"
+    ],
+    "historial_revision": [
+      "Versión original (2025-06-16T17:57:43.739647): ¿Cuál es el torque recomendado para ajustar las tuercas de la tapa de válvulas compresoras de 1\"?",
+      "Corrección automática (2025-06-16T17:57:43.739676): Sin cambios necesarios"
+    ]
+  }
+]

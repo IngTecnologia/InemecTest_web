@@ -12,6 +12,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from docx import Document
 import pandas as pd
 from .utils import create_tracking_key
+from .utils import extract_procedure_code_and_version
 
 from ..config import (
     get_data_file_path,
@@ -159,112 +160,70 @@ class ProcedureScanner:
         
         return "\n".join(texto_completo)
     
-    def extraer_codigo_version_desde_filename(self, filename: str) -> Tuple[str, int]:
-        """
-        Extrae código y versión desde el nombre del archivo
-        Formatos soportados:
-        - PEP-PRO-1141.docx (versión 1 por defecto)
-        - PEP-PRO-1141 V.2.docx (versión 2)
-        - PEP-PRO-1141 V.3.docx (versión 3)
-        """
-        # Remover extensión
-        base_name = filename.replace('.docx', '').replace('.doc', '')
-        
-        # Detectar versión - formato: PEP-PRO-XXX V.2
-        version = 1  # Versión por defecto
-        codigo = base_name
-        
-        # Buscar versión en formato " V.2", " V.3", etc. (con espacio)
-        version_match = re.search(r' V\.(\d+)$', base_name)
-        if version_match:
-            version = int(version_match.group(1))
-            # Remover la parte de versión para obtener el código
-            codigo = base_name[:version_match.start()]
-        
-        # Validar que el código tenga el formato correcto PEP-PRO-XXX
-        if not re.match(r'^PEP-PRO-\d+$', codigo):
-            print(f"⚠️ Formato de código no esperado: {codigo} (archivo: {filename})")
-            # Intentar extraer solo la parte PEP-PRO-XXX si hay caracteres extra
-            pep_match = re.search(r'(PEP-PRO-\d+)', codigo)
-            if pep_match:
-                codigo = pep_match.group(1)
-                print(f"   ✅ Código corregido a: {codigo}")
-        
-        print(f"📄 Archivo procesado: {filename} → Código: {codigo}, Versión: {version}")
-        return codigo, version
     
     def procesar_documento(self, ruta_archivo: Path) -> Dict[str, Any]:
         """
         Procesa un documento .docx y extrae toda la información relevante
+        🔧 VERSIÓN CORREGIDA: Usa SOLO filename, ignora encabezado
         """
         try:
             doc = Document(ruta_archivo)
             
-            # Extraer código y versión desde filename
-            codigo_filename, version_filename = self.extraer_codigo_version_desde_filename(ruta_archivo.name)
+            # ✅ USAR SOLO FILENAME - Más confiable
+            codigo_final, version_final = extract_procedure_code_and_version(ruta_archivo.name)
             
-            # Extraer datos del encabezado
+            # Extraer datos del encabezado SOLO para nombre (opcional)
             datos_encabezado = self.extraer_datos_encabezado(doc)
+            nombre_encabezado = datos_encabezado.get("nombre", "")
             
-            # Usar código del encabezado si existe, sino del filename
-            codigo_final = datos_encabezado.get("codigo", codigo_filename)
-            version_final = datos_encabezado.get("version", str(version_filename))
-            
-            # Datos básicos para compatibilidad con Excel existente
+            # 🎯 ESTRUCTURA SIMPLIFICADA usando solo filename
             datos = {
-                # Columnas requeridas por PROCEDURES_COLUMNS
+                # ✅ Datos principales desde FILENAME
                 "codigo": codigo_final,
-                "nombre": datos_encabezado.get("nombre", ""),
-                "alcance": "",  # Se extraerá de la sección INFORMACIÓN GENERAL
-                "objetivo": "",  # Se extraerá de la sección INFORMACIÓN GENERAL
+                "version": str(version_final),
+                "nombre": nombre_encabezado or f"Procedimiento {codigo_final}",
                 
-                # Información adicional del encabezado
-                "version": version_final,
-                "edicion": datos_encabezado.get("edicion", ""),
+                # Información básica
+                "alcance": "",  # Se puede extraer después si es necesario
+                "objetivo": "",  # Se puede extraer después si es necesario
                 "archivo": ruta_archivo.name,
                 "ruta_completa": str(ruta_archivo.absolute()),
                 "fecha_escaneado": datetime.now().isoformat(),
                 
-                # Información adicional que se extraerá
+                # Información adicional (opcional)
                 "disciplina": "",
                 "recursos_requeridos": "",
                 "elementos_proteccion": "",
                 "descripcion_actividades": ""
             }
             
-            # Detectar índices de secciones principales
+            # 🔍 DEBUG: Mostrar datos procesados
+            print(f"📄 Procesado: {ruta_archivo.name}")
+            print(f"   - Código: {codigo_final}")
+            print(f"   - Versión: {version_final}")
+            print(f"   - Tracking key sería: {codigo_final}_v{version_final}")
+            
+            # Extraer secciones opcionales (mantienes si las necesitas)
             indices = self.detectar_secciones_principales(doc)
             
-            # Extraer sección de Información General
             if "INFORMACIÓN GENERAL DEL PROCEDIMIENTO" in indices and "PELIGROS, RIESGOS Y CONTROLES DE LA ACTIVIDAD" in indices:
                 info_general = self.extraer_seccion_info_general(
                     doc, 
                     indices["INFORMACIÓN GENERAL DEL PROCEDIMIENTO"],
                     indices["PELIGROS, RIESGOS Y CONTROLES DE LA ACTIVIDAD"]
                 )
-                
-                # Mapear información general a campos específicos
                 datos["alcance"] = info_general.get("ALCANCE", "")
                 datos["objetivo"] = info_general.get("OBJETO", "")
-                datos["disciplina"] = info_general.get("DISCIPLINA", "")
-                datos["recursos_requeridos"] = info_general.get("RECURSOS_REQUERIDOS", "")
-                datos["elementos_proteccion"] = info_general.get("ELEMENTOS_PROTECCION", "")
-            
-            # Extraer descripción de actividades
-            if "DESCRIPCIÓN DE ACTIVIDADES" in indices and "CONSIDERACIONES POSTERIORES A LA EJECUCIÓN DE LA ACTIVIDAD" in indices:
-                descripcion_texto = self.extraer_texto_completo_seccion(
-                    doc, 
-                    indices["DESCRIPCIÓN DE ACTIVIDADES"],
-                    indices["CONSIDERACIONES POSTERIORES A LA EJECUCIÓN DE LA ACTIVIDAD"]
-                )
-                datos["descripcion_actividades"] = descripcion_texto
             
             return datos
             
         except Exception as e:
             print(f"❌ Error procesando documento {ruta_archivo}: {e}")
+            # ✅ Usar filename incluso en caso de error
+            codigo_fallback, version_fallback = extract_procedure_code_and_version(ruta_archivo.name)
             return {
-                "codigo": codigo_filename,
+                "codigo": codigo_fallback,
+                "version": str(version_fallback),
                 "nombre": f"ERROR: {ruta_archivo.name}",
                 "alcance": "",
                 "objetivo": "",

@@ -1,0 +1,224 @@
+{
+  "batch_id": "batch_PEP-PRO-1141 V.2_1_20250616_175621",
+  "procedure_codigo": "PEP-PRO-1141 V.2",
+  "procedure_version": "1",
+  "procedure_name": "MANTENIMIENTO 4K Y 8K EN MOTORES SUPERIOR- COMPRESORES SUPERIOR - FLOREÑA",
+  "status": "completed",
+  "created_at": "2025-06-16T17:56:21.516916",
+  "updated_at": "2025-06-16T17:57:43.739711",
+  "total_questions": 5,
+  "validation_score": 0.8666666666666666,
+  "questions": [
+    {
+      "id": "batch_PEP-PRO-1141 V.2_1_20250616_175621_q1",
+      "pregunta": "¿Cuál es el primer paso del procedimiento de prueba?",
+      "opciones": [
+        "Verificar condiciones iniciales",
+        "Iniciar operación directamente",
+        "Contactar supervisor",
+        "Revisar documentación"
+      ],
+      "status": "completed",
+      "validations": [
+        {
+          "validator_type": "estructura",
+          "score": 1,
+          "comment": "La pregunta cumple con todos los estándares estructurales: tiene 4 opciones de respuesta balanceadas en longitud, formato consistente, gramática y ortografía correctas, y las opciones son mutuamente excluyentes y plausibles.",
+          "timestamp": "2025-06-16T17:56:23.944399"
+        },
+        {
+          "validator_type": "tecnico",
+          "score": 0,
+          "comment": "La pregunta tiene problemas de exactitud técnica y relevancia procedimental. La calibración de válvulas motrices generalmente comienza con la colocación del motor en tiempo, lo cual es crítico para asegurar que las válvulas se ajusten correctamente en el ciclo adecuado. Sin embargo, la pregunta no especifica claramente el contexto o el tipo de motor, lo que puede llevar a confusión. Además, las opciones no reflejan un procedimiento estándar de calibración de válvulas, ya que retirar la guarda del volante o verificar el sistema de ignición no son pasos iniciales típicos en este contexto. La opción D, calibrar la válvula de admisión, es un paso posterior en el proceso. La pregunta debería enfocarse más en el procedimiento específico y crítico para la calibración de válvulas motrices, asegurando que las opciones sean relevantes y reflejen situaciones reales de trabajo.",
+          "timestamp": "2025-06-16T17:56:31.512932"
+        },
+        {
+          "validator_type": "dificultad",
+          "score": 1,
+          "comment": "La pregunta tiene un nivel de dificultad apropiado ya que requiere comprensión del procedimiento específico de calibración de válvulas motrices, no solo memorización. Las opciones incorrectas son plausibles y no obviamente erróneas, lo que ayuda a discriminar entre quienes conocen el procedimiento y quienes no. La pregunta evalúa comprensión conceptual y aplicación del conocimiento, ya que el operador debe saber cuál es el primer paso en un contexto operacional específico. No hay pistas inadvertidas que hagan evidente la respuesta correcta por eliminación.",
+          "timestamp": "2025-06-16T17:56:35.362811"
+        },
+        {
+          "validator_type": "claridad",
+          "score": 1,
+          "comment": "La pregunta es clara y directa, sin ambigüedades. El lenguaje es apropiado para un operador técnico y la sintaxis está bien estructurada. Las instrucciones son específicas y completas, no falta información crítica y los términos técnicos están usados correctamente. El contexto está claramente establecido con el código y versión del procedimiento. La pregunta puede responderse sin confusión, no requiere interpretación adicional y las opciones son claramente diferenciables. La longitud es apropiada.",
+          "timestamp": "2025-06-16T17:56:38.413055"
+        }
+      ],
+      "historial_revision": [
+        "Versión original (2025-06-16T17:57:37.653828): ¿Cuál es el primer paso para calibrar las válvulas motrices en el motor superior?",
+        "Corrección automática (2025-06-16T17:57:37.653855): Sin cambios necesarios"
+      ],
+      "version_preg": 1,
+      "prompt": "1.1",
+      "puntaje_ia": 0
+    },
+    {
+      "id": "batch_PEP-PRO-1141 V.2_1_20250616_175621_q2",
+      "pregunta": "Durante el mantenimiento, el operador detecta presión en el compresor. ¿Qué debe hacer antes de continuar?",
+      "opciones": [
+        "Comunicar al supervisor y no iniciar la actividad.",
+        "Proceder con el cambio de válvulas.",
+        "Ajustar las tuercas de la tapa.",
+        "Instalar la herramienta extractora."
+      ],
+      "status": "completed",
+      "validations": [
+        {
+          "validator_type": "estructura",
+          "score": 1,
+          "comment": "La pregunta cumple con todos los estándares estructurales. Las opciones están balanceadas, son mutuamente excluyentes y plausibles. No hay errores de formato o gramática.",
+          "timestamp": "2025-06-16T17:56:41.087566"
+        },
+        {
+          "validator_type": "tecnico",
+          "score": 1,
+          "comment": "La pregunta es técnicamente correcta y operacionalmente relevante. Detectar presión en el compresor durante el mantenimiento es un aspecto crítico que debe ser manejado adecuadamente para garantizar la seguridad. La opción A es la más adecuada, ya que comunicar al supervisor y no iniciar la actividad es un procedimiento estándar de seguridad en situaciones donde hay presión residual. Las otras opciones podrían llevar a situaciones peligrosas si se realiza mantenimiento con presión presente. La pregunta evalúa la comprensión práctica de procedimientos de seguridad y es relevante para operadores reales, reflejando situaciones de trabajo realistas.",
+          "timestamp": "2025-06-16T17:56:46.412044"
+        },
+        {
+          "validator_type": "dificultad",
+          "score": 1,
+          "comment": "La pregunta tiene un nivel de dificultad apropiado ya que requiere que el operador comprenda el procedimiento de seguridad antes de continuar con el mantenimiento. Las opciones incorrectas son plausibles para alguien con conocimiento parcial, ya que podrían parecer acciones lógicas en un contexto de mantenimiento, pero no son correctas según el procedimiento estándar. La pregunta discrimina bien entre quienes conocen el procedimiento y quienes no, ya que solo alguien con conocimiento adecuado sabría que la opción correcta es comunicar al supervisor y no iniciar la actividad. Además, evalúa la comprensión conceptual de la importancia de la seguridad en el mantenimiento, no solo datos memorizados, y requiere aplicar el conocimiento a una situación específica.",
+          "timestamp": "2025-06-16T17:56:49.962795"
+        },
+        {
+          "validator_type": "claridad",
+          "score": 1,
+          "comment": "La pregunta es clara y directa, sin ambigüedades. El lenguaje es apropiado para un operador técnico y la sintaxis es clara. Las instrucciones son específicas y completas, no hay información faltante crítica y los términos técnicos están usados correctamente. El contexto está bien establecido con la referencia al código del procedimiento. La pregunta puede responderse sin confusión, no requiere interpretación o suposiciones, y las opciones son claramente diferenciables. La longitud es apropiada.",
+          "timestamp": "2025-06-16T17:56:53.147032"
+        }
+      ],
+      "historial_revision": [],
+      "version_preg": 1,
+      "prompt": "1.1",
+      "puntaje_ia": 0
+    },
+    {
+      "id": "batch_PEP-PRO-1141 V.2_1_20250616_175621_q3",
+      "pregunta": "¿Qué herramienta se utiliza para retirar la válvula compresora?",
+      "opciones": [
+        "Extractor de válvulas compresoras.",
+        "Llave de torque.",
+        "Multímetro.",
+        "Calibrador de bujías."
+      ],
+      "status": "completed",
+      "validations": [
+        {
+          "validator_type": "estructura",
+          "score": 1,
+          "comment": "La pregunta cumple con todos los estándares estructurales: tiene 4 opciones de respuesta balanceadas en longitud, formato consistente, gramática correcta, opciones mutuamente excluyentes y plausibles.",
+          "timestamp": "2025-06-16T17:56:56.081279"
+        },
+        {
+          "validator_type": "tecnico",
+          "score": 1,
+          "comment": "La pregunta es técnicamente correcta y operacionalmente relevante. La opción A, 'Extractor de válvulas compresoras', es la herramienta adecuada para retirar una válvula compresora, lo cual es un aspecto crítico del procedimiento. Las otras opciones son herramientas reales pero no aplicables a esta tarea específica, lo que refleja errores comunes en la selección de herramientas. La pregunta evalúa la comprensión práctica de la selección de herramientas, esencial para operadores en un entorno industrial.",
+          "timestamp": "2025-06-16T17:56:58.523403"
+        },
+        {
+          "validator_type": "dificultad",
+          "score": 1,
+          "comment": "La pregunta tiene un nivel de dificultad apropiado ya que requiere que el operador conozca específicamente la herramienta adecuada para retirar una válvula compresora, lo cual no es un conocimiento trivial. Las opciones incorrectas son plausibles para alguien con conocimiento parcial, ya que todas son herramientas comunes en un entorno técnico, pero solo una es la correcta para esta tarea específica. La pregunta discrimina bien entre quienes conocen el procedimiento y quienes no, ya que las opciones distractoras podrían ser seleccionadas por alguien que no esté completamente seguro. Además, evalúa la comprensión conceptual y la aplicación del conocimiento en una situación específica, sin recurrir a trucos o tecnicismos innecesarios.",
+          "timestamp": "2025-06-16T17:57:01.881328"
+        },
+        {
+          "validator_type": "claridad",
+          "score": 1,
+          "comment": "La pregunta es clara y directa, sin ambigüedades. El lenguaje es apropiado para un operador técnico y la sintaxis está bien estructurada. Las instrucciones son específicas y completas, no falta información crítica y los términos técnicos están correctamente utilizados. El contexto está claramente establecido con el código y versión del procedimiento. La pregunta puede responderse sin confusión, no requiere interpretación adicional y las opciones son claramente diferenciables. La longitud es apropiada para el contexto técnico.",
+          "timestamp": "2025-06-16T17:57:05.452530"
+        }
+      ],
+      "historial_revision": [],
+      "version_preg": 1,
+      "prompt": "1.1",
+      "puntaje_ia": 0
+    },
+    {
+      "id": "batch_PEP-PRO-1141 V.2_1_20250616_175621_q4",
+      "pregunta": "Un error común es no verificar la presión antes de retirar las válvulas. ¿Qué puede ocurrir?",
+      "opciones": [
+        "Presión atrapada puede causar accidentes.",
+        "El compresor puede sobrecalentarse.",
+        "Las válvulas pueden dañarse.",
+        "El aceite puede contaminarse."
+      ],
+      "status": "completed",
+      "validations": [
+        {
+          "validator_type": "estructura",
+          "score": 1,
+          "comment": "La pregunta cumple con todos los estándares estructurales. Las opciones están balanceadas, son mutuamente excluyentes y plausibles. No hay errores de formato o gramática.",
+          "timestamp": "2025-06-16T17:57:08.251493"
+        },
+        {
+          "validator_type": "tecnico",
+          "score": 1,
+          "comment": "La pregunta es técnicamente correcta y operacionalmente relevante. Verificar la presión antes de retirar las válvulas es un aspecto crítico de seguridad en procedimientos industriales. La opción A es correcta y refleja un riesgo real de accidentes debido a presión atrapada. Las opciones incorrectas también son plausibles y representan errores comunes en el contexto laboral, aunque no directamente relacionados con la presión atrapada. La terminología es precisa y el nivel de dificultad es apropiado para operadores reales.",
+          "timestamp": "2025-06-16T17:57:12.261947"
+        },
+        {
+          "validator_type": "dificultad",
+          "score": 1,
+          "comment": "La pregunta tiene un nivel de dificultad apropiado ya que requiere comprensión del procedimiento de seguridad al trabajar con válvulas y presión. Las opciones incorrectas son plausibles para alguien con conocimiento parcial, ya que todas las opciones podrían ser consecuencias de errores en procedimientos industriales, pero solo la opción A es directamente relevante al contexto de presión atrapada. La pregunta discrimina bien entre quienes entienden el riesgo específico de no verificar la presión y quienes no. Además, evalúa la aplicación del conocimiento a una situación específica, sin recurrir a trucos o tecnicismos innecesarios.",
+          "timestamp": "2025-06-16T17:57:16.440040"
+        },
+        {
+          "validator_type": "claridad",
+          "score": 1,
+          "comment": "La pregunta es clara y directa, sin ambigüedades. El lenguaje es apropiado para un operador técnico y la sintaxis está bien estructurada. Las instrucciones son específicas y completas, y los términos técnicos están usados correctamente. El contexto está claramente establecido con la referencia al procedimiento. La pregunta puede responderse sin confusión, no requiere interpretación o suposiciones, y las opciones son claramente diferenciables. La longitud es apropiada.",
+          "timestamp": "2025-06-16T17:57:19.081244"
+        }
+      ],
+      "historial_revision": [],
+      "version_preg": 1,
+      "prompt": "1.1",
+      "puntaje_ia": 0
+    },
+    {
+      "id": "batch_PEP-PRO-1141 V.2_1_20250616_175621_q5",
+      "pregunta": "¿Cuál es el primer paso del procedimiento de prueba?",
+      "opciones": [
+        "Verificar condiciones iniciales",
+        "Iniciar operación directamente",
+        "Contactar supervisor",
+        "Revisar documentación"
+      ],
+      "status": "completed",
+      "validations": [
+        {
+          "validator_type": "estructura",
+          "score": 1,
+          "comment": "La pregunta cumple con todos los estándares estructurales. Las opciones están balanceadas, son mutuamente excluyentes y plausibles. No hay errores de formato o gramática.",
+          "timestamp": "2025-06-16T17:57:22.756384"
+        },
+        {
+          "validator_type": "tecnico",
+          "score": 0,
+          "comment": "La pregunta carece de información técnica específica y actualizada sobre el torque recomendado para las tuercas de la tapa de válvulas compresoras de 1\". No se proporciona una referencia clara al procedimiento o manual técnico que valide los valores de torque mencionados en las opciones. Además, la pregunta no evalúa aspectos críticos del procedimiento ni se centra en conocimientos esenciales para la operación, ya que el torque específico puede variar según el fabricante y el modelo del compresor. Para ser relevante, la pregunta debería estar respaldada por datos técnicos específicos del equipo en cuestión y reflejar situaciones reales de trabajo.",
+          "timestamp": "2025-06-16T17:57:26.737591"
+        },
+        {
+          "validator_type": "dificultad",
+          "score": 1,
+          "comment": "La pregunta tiene un nivel de dificultad apropiado ya que requiere comprensión del procedimiento específico y no solo memorización. Las opciones incorrectas son plausibles y no obviamente erróneas, lo que ayuda a discriminar entre quienes tienen un conocimiento parcial y completo del procedimiento. La pregunta evalúa la aplicación del conocimiento en una situación específica y es adecuada para operadores capacitados en un contexto industrial.",
+          "timestamp": "2025-06-16T17:57:29.621839"
+        },
+        {
+          "validator_type": "claridad",
+          "score": 1,
+          "comment": "La pregunta es clara y directa, sin ambigüedades. El lenguaje es apropiado para un operador técnico, y la sintaxis está bien estructurada. Las instrucciones son específicas y completas, no falta información crítica, y los términos técnicos están usados correctamente. El contexto está claramente establecido con el código y versión del procedimiento. Las opciones son claramente diferenciables y la longitud de la pregunta es adecuada. No se requiere interpretación o suposiciones para responderla.",
+          "timestamp": "2025-06-16T17:57:32.036686"
+        }
+      ],
+      "historial_revision": [
+        "Versión original (2025-06-16T17:57:43.739647): ¿Cuál es el torque recomendado para ajustar las tuercas de la tapa de válvulas compresoras de 1\"?",
+        "Corrección automática (2025-06-16T17:57:43.739676): Sin cambios necesarios"
+      ],
+      "version_preg": 1,
+      "prompt": "1.1",
+      "puntaje_ia": 0
+    }
+  ]
+}

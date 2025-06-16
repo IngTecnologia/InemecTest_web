@@ -1,0 +1,123 @@
+[
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuál es el primer paso del procedimiento de prueba?",
+    "opciones": [
+      "Verificar condiciones iniciales",
+      "Iniciar operación directamente",
+      "Contactar supervisor",
+      "Revisar documentación"
+    ],
+    "historial_revision": [
+      "Versión original (2025-06-16T17:43:39.952790): ¿Cuál es el primer paso para calibrar las válvulas motrices en el motor superior?",
+      "Corrección automática (2025-06-16T17:43:39.952852): Sin cambios necesarios"
+    ]
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "Un operador debe cambiar las válvulas compresoras. ¿Qué debe verificar antes de iniciar?",
+    "opciones": [
+      "Ausencia de presión en el compresor",
+      "Estado de los empaques",
+      "Torque de las tuercas",
+      "Nivel de aceite en el cárter"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué herramienta se usa para retirar válvulas compresoras?",
+    "opciones": [
+      "Extractor de válvulas",
+      "Llave de torque",
+      "Multímetro",
+      "Calibrador de bujías"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué error común se debe evitar al instalar una nueva válvula compresora?",
+    "opciones": [
+      "No instalar el sello en el fondo del alojamiento",
+      "No limpiar el alojamiento de la válvula",
+      "No verificar el torque de las tuercas",
+      "No usar la herramienta extractora"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "PEP-PRO-1141 V.2",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuál es el primer paso del procedimiento de prueba?",
+    "opciones": [
+      "Verificar condiciones iniciales",
+      "Iniciar operación directamente",
+      "Contactar supervisor",
+      "Revisar documentación"
+    ],
+    "historial_revision": [
+      "Versión original (2025-06-16T17:43:46.158351): ¿Cuál es el torque recomendado para espárragos de 1\" al instalar válvulas compresoras?",
+      "Corrección automática (2025-06-16T17:43:46.158381): Sin cambios necesarios"
+    ]
+  }
+]

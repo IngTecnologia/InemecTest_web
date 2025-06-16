@@ -12,6 +12,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from docx import Document
 from openai import OpenAI
 from .config import get_openai_api_key
+from .utils import extract_procedure_code_and_version
 
 from .models import (
     QuestionInProcess, 
@@ -133,7 +134,7 @@ class QuestionGenerator:
             contenido = self.extraer_texto_docx(procedure_file_path)
             
             # Extraer código y versión del nombre del archivo
-            codigo, version = self._parse_codigo_version_from_filename(procedure_file_path.name)
+            codigo, version = extract_procedure_code_and_version(procedure_file_path.name)
             
             # Crear mensaje para OpenAI
             mensaje_usuario = f"""
