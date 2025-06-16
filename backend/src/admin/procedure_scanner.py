@@ -170,7 +170,10 @@ class ProcedureScanner:
             doc = Document(ruta_archivo)
             
             # ✅ USAR SOLO FILENAME - Más confiable
-            codigo_final, version_final = extract_procedure_code_and_version(ruta_archivo.name)
+            codigo_raw, version_final = extract_procedure_code_and_version(ruta_archivo.name)
+            
+            # ✅ LIMPIAR el código de prefijos no deseados
+            codigo_final = self._limpiar_codigo(codigo_raw)
             
             # Extraer datos del encabezado SOLO para nombre (opcional)
             datos_encabezado = self.extraer_datos_encabezado(doc)
@@ -199,7 +202,8 @@ class ProcedureScanner:
             
             # 🔍 DEBUG: Mostrar datos procesados
             print(f"📄 Procesado: {ruta_archivo.name}")
-            print(f"   - Código: {codigo_final}")
+            print(f"   - Código original: {codigo_raw}")
+            print(f"   - Código limpio: {codigo_final}")
             print(f"   - Versión: {version_final}")
             print(f"   - Tracking key sería: {codigo_final}_v{version_final}")
             
@@ -221,6 +225,7 @@ class ProcedureScanner:
             print(f"❌ Error procesando documento {ruta_archivo}: {e}")
             # ✅ Usar filename incluso en caso de error
             codigo_fallback, version_fallback = extract_procedure_code_and_version(ruta_archivo.name)
+            codigo_fallback = self._limpiar_codigo(codigo_fallback)
             return {
                 "codigo": codigo_fallback,
                 "version": str(version_fallback),
@@ -231,6 +236,33 @@ class ProcedureScanner:
                 "error": str(e),
                 "fecha_escaneado": datetime.now().isoformat()
             }
+
+    def _limpiar_codigo(self, codigo: str) -> str:
+        """
+        Limpiar código de prefijos no deseados
+        """
+        import re
+        
+        # Remover prefijos comunes
+        prefijos_a_remover = ["CODIGO:", "CÓDIGO:", "CODIGO ", "CÓDIGO "]
+        
+        codigo_limpio = codigo.strip()
+        
+        for prefijo in prefijos_a_remover:
+            if codigo_limpio.upper().startswith(prefijo.upper()):
+                codigo_limpio = codigo_limpio[len(prefijo):].strip()
+                break
+        
+        # Validar formato final
+        if not re.match(r'^PEP-PRO-\d+$', codigo_limpio):
+            print(f"⚠️ Código limpiado no válido: '{codigo_limpio}' (original: '{codigo}')")
+            # Intentar extraer PEP-PRO-XXX del texto
+            pep_match = re.search(r'(PEP-PRO-\d+)', codigo_limpio)
+            if pep_match:
+                codigo_limpio = pep_match.group(1)
+                print(f"   ✅ Código extraído: {codigo_limpio}")
+        
+        return codigo_limpio
     
     def cargar_tracking_data(self) -> Dict[str, Any]:
         """
