@@ -11,13 +11,16 @@ from typing import Dict, Any, List
 # CONFIGURACIÓN DE ARCHIVOS EXCEL
 # =============================================================================
 
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+
 # Rutas de archivos Excel
 EXCEL_FILES = {
     "data": {
-        "path": "backend/data/procedimientos_y_preguntas.xlsx",
+        "path": DATA_DIR / "procedimientos_y_preguntas.xlsx",
     },
     "results": {
-        "path": "backend/data/resultados_evaluaciones.xlsx", 
+        "path": DATA_DIR / "resultados_evaluaciones.xlsx",
     }
 }
 
@@ -138,7 +141,7 @@ FILE_VALIDATION = {
     "max_file_size_mb": 50,
     "required_extensions": [".xlsx", ".xls"],
     "backup_enabled": True,
-    "backup_directory": "data/backups/"
+    "backup_directory": DATA_DIR / "backups"
 }
 
 # =============================================================================
@@ -170,7 +173,7 @@ def get_results_file_path() -> Path:
 
 def ensure_data_directory():
     """Crear directorio de datos si no existe"""
-    data_dir = Path("backend/data")
+    data_dir = DATA_DIR
     data_dir.mkdir(exist_ok=True)
     
     # Crear subdirectorios

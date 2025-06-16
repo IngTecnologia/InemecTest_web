@@ -13,6 +13,7 @@ from docx import Document
 import pandas as pd
 from .utils import create_tracking_key
 from .utils import extract_procedure_code_and_version
+from .config import get_admin_file_path, get_admin_directory_path
 
 from ..config import (
     get_data_file_path,
@@ -27,16 +28,19 @@ class ProcedureScanner:
     y determina cuáles necesitan generación de preguntas
     """
     
-    def __init__(self, procedures_source_dir: str = "data/procedures_source"):
+    def __init__(self, procedures_source_dir: str | None = None):
         """
         Inicializar scanner
         
         Args:
             procedures_source_dir: Directorio donde están los archivos .docx de procedimientos
         """
+
+        if procedures_source_dir is None:
+            procedures_source_dir = str(get_admin_directory_path("procedures_source"))
         self.procedures_source_dir = Path(procedures_source_dir)
         self.excel_file = get_data_file_path()
-        self.tracking_file = Path("backend/data/question_generation_tracking.json")
+        self.tracking_file = get_admin_file_path("tracking")
         
         # Crear directorios si no existen
         ensure_data_directory()
@@ -410,7 +414,9 @@ class ProcedureScanner:
         Marcar un procedimiento como que ya tiene preguntas generadas
         """
         tracking_data = self.cargar_tracking_data()
-        tracking_key = create_tracking_key(codigo, version)
+        # Normalizar el código antes de construir la clave de tracking
+        codigo_limpio = self._limpiar_codigo(codigo)
+        tracking_key = create_tracking_key(codigo_limpio, version)
         
         # CORREGIDO: Manejar diferentes tipos de datos de preguntas
         preguntas_count = 0
@@ -475,7 +481,10 @@ def crear_scanner(procedures_dir: str = None) -> ProcedureScanner:
     Crear instancia del scanner con configuración por defecto
     """
     if procedures_dir is None:
-        procedures_dir = os.getenv("PROCEDURES_SOURCE_DIR", "backend/data/procedures_source")
+        procedures_dir = os.getenv(
+            "PROCEDURES_SOURCE_DIR",
+            str(get_admin_directory_path("procedures_source"))
+        )
     
     return ProcedureScanner(procedures_dir)
 

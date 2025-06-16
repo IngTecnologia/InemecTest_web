@@ -17,7 +17,8 @@ from pathlib import Path
 OPENAI_API_KEY = ""
 
 
-
+# Directorio base del backend
+BASE_DIR = Path(__file__).resolve().parents[1]
 
 # Configuración por defecto para generación
 GENERATION_CONFIG = {
@@ -85,7 +86,7 @@ La respuesta debe ser una lista de cinco objetos en formato JSON, con la siguien
 111
 [
   {
-    "codigo_procedimiento": "ABC-1234",
+    "codigo_procedimiento": "PEP-PRO-1234",
     "version_proc": 1,
     "version_preg": 1,
     "prompt": "1.1",
@@ -108,7 +109,7 @@ La respuesta debe ser una lista de cinco objetos en formato JSON, con la siguien
     "historial_revision": []
   },
   {
-    "codigo_procedimiento": "ABC-1234",
+    "codigo_procedimiento": "PEP-PRO-1234",
     "version_proc": 1,
     "version_preg": 1,
     "prompt": "1.1",
@@ -390,7 +391,7 @@ CORRECTOR_CONFIG = {
 # =============================================================================
 
 
-BASE_DATA_DIR = Path("backend/data")
+BASE_DATA_DIR = BASE_DIR / "data"
 # Directorios del módulo admin
 ADMIN_DIRECTORIES = {
     "procedures_source": os.getenv("PROCEDURES_SOURCE_DIR", str(BASE_DATA_DIR / "procedures_source")),

@@ -17,6 +17,7 @@ from ..config import (
     QUESTIONS_COLUMNS,
     ensure_data_directory
 )
+from .config import get_admin_file_path
 from .models import QuestionBatch, QuestionInProcess
 
 class ExcelSyncManager:
@@ -208,7 +209,7 @@ class ExcelSyncManager:
         """
         try:
             # Preparar archivo de preguntas generadas
-            generated_file = Path("backend/data/generated_questions.json")
+            generated_file = get_admin_file_path("generated_questions")
             
             # Cargar existente o crear nuevo
             if generated_file.exists():
