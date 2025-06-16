@@ -185,19 +185,15 @@ class ProcedureScanner:
             
             # 🎯 ESTRUCTURA SIMPLIFICADA usando solo filename
             datos = {
-                # ✅ Datos principales desde FILENAME
                 "codigo": codigo_final,
                 "version": str(version_final),
                 "nombre": nombre_encabezado or f"Procedimiento {codigo_final}",
-                
-                # Información básica
-                "alcance": "",  # Se puede extraer después si es necesario
-                "objetivo": "",  # Se puede extraer después si es necesario
+                "alcance": "",
+                "objetivo": "",
                 "archivo": ruta_archivo.name,
-                "ruta_completa": str(ruta_archivo.absolute()),
+                "ruta_completa": str(ruta_archivo),  # ✅ AGREGAR ESTE CAMPO
                 "fecha_escaneado": datetime.now().isoformat(),
-                
-                # Información adicional (opcional)
+                "edicion": "",
                 "disciplina": "",
                 "recursos_requeridos": "",
                 "elementos_proteccion": "",
@@ -227,7 +223,6 @@ class ProcedureScanner:
             
         except Exception as e:
             print(f"❌ Error procesando documento {ruta_archivo}: {e}")
-            # ✅ Usar filename incluso en caso de error
             codigo_fallback, version_fallback = extract_procedure_code_and_version(ruta_archivo.name)
             codigo_fallback = self._limpiar_codigo(codigo_fallback)
             return {
@@ -237,6 +232,7 @@ class ProcedureScanner:
                 "alcance": "",
                 "objetivo": "",
                 "archivo": ruta_archivo.name,
+                "ruta_completa": str(ruta_archivo),  # ✅ AGREGAR AQUÍ TAMBIÉN
                 "error": str(e),
                 "fecha_escaneado": datetime.now().isoformat()
             }
@@ -388,7 +384,8 @@ class ProcedureScanner:
             "success": True,
             "message": f"Escaneo completado: {len(archivos_encontrados)} archivos procesados",
             "archivos_encontrados": len(archivos_encontrados),
-            "procedimientos_pendientes": procedimientos_nuevos,  # ✅ cambiar nombre
+            "procedimientos_pendientes": procedimientos_nuevos,  # ✅ Cambiar a procedimientos_nuevos
+            "procedimientos_actualizados": procedimientos_actualizados,  # ✅ Agregar campo
             "cola_generacion": cola_generacion,
             "tracking_file": str(self.tracking_file),
             "timestamp": datetime.now().isoformat()

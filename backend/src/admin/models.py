@@ -16,6 +16,7 @@ class ProcedureStatus(str, Enum):
     nuevo_procedimiento = "nuevo_procedimiento"
     nueva_version = "nueva_version"
     ya_procesado = "ya_procesado"
+    necesita_preguntas = "necesita_preguntas"  # ✅ AGREGAR ESTE
     pending = "pending"
     generating = "generating"
     validating = "validating"
@@ -49,8 +50,8 @@ class ScannedProcedure(BaseModel):
     # Campos básicos compatibles con Excel
     codigo: str = Field(..., description="Código del procedimiento")
     nombre: str = Field(..., description="Nombre del procedimiento")
-    alcance: str = Field(..., description="Alcance del procedimiento")
-    objetivo: str = Field(..., description="Objetivo del procedimiento")
+    alcance: str = Field("", description="Alcance del procedimiento")  # ✅ Default vacío
+    objetivo: str = Field("", description="Objetivo del procedimiento")  # ✅ Default vacío
     
     # Información adicional del archivo
     version: str = Field(..., description="Versión del procedimiento")
@@ -59,7 +60,7 @@ class ScannedProcedure(BaseModel):
     ruta_completa: str = Field(..., description="Ruta completa del archivo")
     fecha_escaneado: str = Field(..., description="Fecha de escaneo")
     
-    # Información técnica adicional
+    # Información técnica adicional - TODOS OPCIONALES
     disciplina: str = Field("", description="Disciplina del procedimiento")
     recursos_requeridos: str = Field("", description="Recursos requeridos")
     elementos_proteccion: str = Field("", description="Elementos de protección personal")

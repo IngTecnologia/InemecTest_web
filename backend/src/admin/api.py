@@ -176,9 +176,22 @@ async def scan_procedures():
         scanner = get_scanner()
         resultado = scanner.escanear_directorio()
         
+        print(f"🔍 Debug - Resultado scanner: {resultado.keys()}")
+        
         # Convertir resultado a modelo Pydantic
         queue_items = []
-        for item in resultado["cola_generacion"]:
+        for i, item in enumerate(resultado["cola_generacion"]):
+            print(f"🔍 Debug - Item {i}: {item.keys()}")
+            print(f"🔍 Debug - datos_completos keys: {item['datos_completos'].keys()}")
+            
+            try:
+                scanned_proc = ScannedProcedure(**item["datos_completos"])
+                print(f"✅ ScannedProcedure creado para {item['codigo']}")
+            except Exception as e:
+                print(f"❌ Error creando ScannedProcedure: {e}")
+                print(f"❌ Datos: {item['datos_completos']}")
+                raise
+            
             queue_item = QueueItem(
                 codigo=item["codigo"],
                 nombre=item["nombre"],
@@ -186,7 +199,7 @@ async def scan_procedures():
                 archivo=item["archivo"],
                 estado=ProcedureStatus(item["estado"]),
                 tracking_key=item["tracking_key"],
-                datos_completos=ScannedProcedure(**item["datos_completos"]),
+                datos_completos=scanned_proc,
                 fecha_agregado=get_current_timestamp(),
                 prioridad=1
             )
@@ -196,14 +209,17 @@ async def scan_procedures():
             success=resultado["success"],
             message=resultado["message"],
             archivos_encontrados=resultado["archivos_encontrados"],
-            procedimientos_nuevos=resultado["procedimientos_nuevos"],
-            procedimientos_actualizados=resultado["procedimientos_actualizados"],
+            procedimientos_nuevos=resultado.get("procedimientos_pendientes", 0),
+            procedimientos_actualizados=resultado.get("procedimientos_actualizados", 0),
             cola_generacion=queue_items,
-            tracking_file=resultado["tracking_file"],
-            timestamp=resultado["timestamp"]
+            tracking_file=str(scanner.tracking_file),
+            timestamp=get_current_timestamp()
         )
         
     except Exception as e:
+        print(f"❌ Error completo en scan: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error escaneando procedimientos: {str(e)}"
