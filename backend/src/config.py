@@ -14,12 +14,10 @@ from typing import Dict, Any, List
 # Rutas de archivos Excel
 EXCEL_FILES = {
     "data": {
-        "path": "data/procedimientos_y_preguntas.xlsx",
-        "description": "Archivo principal con procedimientos y preguntas"
+        "path": "backend/data/procedimientos_y_preguntas.xlsx",
     },
     "results": {
-        "path": "data/resultados_evaluaciones.xlsx", 
-        "description": "Archivo donde se guardan los resultados de las evaluaciones"
+        "path": "backend/data/resultados_evaluaciones.xlsx", 
     }
 }
 
@@ -172,7 +170,7 @@ def get_results_file_path() -> Path:
 
 def ensure_data_directory():
     """Crear directorio de datos si no existe"""
-    data_dir = Path("data")
+    data_dir = Path("backend/data")
     data_dir.mkdir(exist_ok=True)
     
     # Crear subdirectorios

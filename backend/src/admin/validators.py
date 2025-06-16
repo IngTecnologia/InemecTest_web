@@ -251,7 +251,7 @@ Por favor evalúa esta pregunta según tus criterios especializados.
                         "content": question_prompt
                     }
                 ],
-                temperature=0.1,  # Baja temperatura para validación consistente
+                temperature=0.4,  # Baja temperatura para validación consistente
                 max_tokens=500,   # Respuestas cortas
                 timeout=self.config["timeout"]
             )

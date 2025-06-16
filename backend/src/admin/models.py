@@ -356,12 +356,6 @@ def validate_question_format(question_data: Dict[str, Any]) -> bool:
     
     return True
 
-def create_tracking_key(codigo: str, version: str) -> str:
-    """
-    Crear clave única para tracking
-    """
-    return f"{codigo}_v{version}"
-
 def get_current_timestamp() -> str:
     """
     Obtener timestamp actual en formato ISO
@@ -395,8 +389,3 @@ DEFAULT_GENERATION_CONFIG = GenerationConfig(
 # Tipos de archivos soportados
 SUPPORTED_FILE_EXTENSIONS = [".docx", ".doc"]
 
-# Número de preguntas por procedimiento
-QUESTIONS_PER_PROCEDURE = 5
-
-# Número de validadores
-NUMBER_OF_VALIDATORS = 4

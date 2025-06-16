@@ -596,6 +596,41 @@ def get_openai_api_key() -> str:
     """Obtener API key de OpenAI"""
     return OPENAI_API_KEY
 
+def get_current_timestamp() -> str:
+    """Obtener timestamp actual en formato ISO"""
+    from datetime import datetime
+    return datetime.now().isoformat()
+
+def create_tracking_key(codigo: str, version: str) -> str:
+    """Crear clave única para tracking de procedimientos"""
+    return f"{codigo}_v{version}"
+
+def extract_procedure_code_and_version(filename: str) -> tuple[str, str]:
+    """
+    Extraer código y versión del nombre de archivo
+    
+    Args:
+        filename: Nombre del archivo (ej: "PEP-PRO-1141_V.2.docx")
+        
+    Returns:
+        tuple: (codigo, version)
+    """
+    # Remover extensión
+    base_name = filename.replace('.docx', '').replace('.DOCX', '')
+    
+    # Buscar patrón de versión
+    version = "1"  # Default
+    codigo = base_name
+    
+    # Patrón: CODIGO_V.X o CODIGO V.X
+    import re
+    version_match = re.search(r'[_\s]V\.?(\d+)', base_name, re.IGNORECASE)
+    if version_match:
+        version = version_match.group(1)
+        codigo = base_name[:version_match.start()]
+    
+    return codigo.strip(), version.strip()
+
 
 
 # =============================================================================

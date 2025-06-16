@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from docx import Document
 import pandas as pd
+from .utils import create_tracking_key
 
 from ..config import (
     get_data_file_path,
@@ -34,7 +35,7 @@ class ProcedureScanner:
         """
         self.procedures_source_dir = Path(procedures_source_dir)
         self.excel_file = get_data_file_path()
-        self.tracking_file = Path("data/question_generation_tracking.json")
+        self.tracking_file = Path("backend/data/question_generation_tracking.json")
         
         # Crear directorios si no existen
         ensure_data_directory()
@@ -300,43 +301,6 @@ class ProcedureScanner:
         except Exception as e:
             print(f"❌ Error guardando tracking data: {e}")
     
-    def get_existing_procedures_from_excel(self) -> List[Dict[str, Any]]:
-        """
-        Obtener procedimientos existentes desde el archivo Excel
-        """
-        try:
-            if not self.excel_file.exists():
-                print(f"⚠️ Archivo Excel no encontrado: {self.excel_file}")
-                return []
-            
-            df = pd.read_excel(self.excel_file, sheet_name=DATA_SHEETS["procedures"]["name"])
-            
-            procedures = []
-            for index, row in df.iterrows():
-                # Saltar filas vacías
-                if pd.isna(row.iloc[0]) or str(row.iloc[0]).strip() == "":
-                    continue
-                
-                try:
-                    procedure = {
-                        "codigo": str(row.iloc[0]).strip(),
-                        "nombre": str(row.iloc[1]).strip(),
-                        "alcance": str(row.iloc[2]).strip(),
-                        "objetivo": str(row.iloc[3]).strip()
-                    }
-                    
-                    if procedure["codigo"] and procedure["codigo"] != "nan":
-                        procedures.append(procedure)
-                        
-                except Exception as e:
-                    print(f"⚠️ Error procesando fila Excel {index + 2}: {e}")
-                    continue
-            
-            return procedures
-            
-        except Exception as e:
-            print(f"❌ Error leyendo Excel: {e}")
-            return []
     
     def escanear_directorio(self) -> Dict[str, Any]:
         """
@@ -346,10 +310,6 @@ class ProcedureScanner:
         
         # Cargar tracking data
         tracking_data = self.cargar_tracking_data()
-        
-        # Obtener procedimientos existentes en Excel
-        existing_procedures = self.get_existing_procedures_from_excel()
-        existing_codes = {proc["codigo"] for proc in existing_procedures}
         
         # Escanear archivos .docx
         archivos_encontrados = []
@@ -387,25 +347,18 @@ class ProcedureScanner:
             codigo = proc_data["codigo"]
             version = proc_data.get("version", "1")
             
-            # Crear clave única para tracking
-            tracking_key = f"{codigo}_v{version}"
-            
-            # Verificar si ya existe en Excel
-            existe_en_excel = codigo in existing_codes
-            
-            # Verificar si ya se generaron preguntas para esta versión
-            ya_generado = tracking_key in tracking_data["generated_questions"]
-            
-            # Determinar estado
-            if not existe_en_excel:
-                estado = "nuevo_procedimiento"
-                procedimientos_nuevos += 1
-            elif not ya_generado:
-                estado = "nueva_version"
-                procedimientos_actualizados += 1
-            else:
-                estado = "ya_procesado"
-                continue  # No añadir a cola
+            tracking_key = create_tracking_key(codigo, version)
+
+            # Verificar si ya se completó el procesamiento
+            if tracking_key in tracking_data.get("generated_questions", {}):
+                status = tracking_data["generated_questions"][tracking_key].get("status")
+                if status == "completed":
+                    # Ya tiene preguntas generadas, no agregar a cola
+                    continue
+
+            # Si llegamos aquí, necesita procesamiento
+            estado = "necesita_preguntas"
+            procedimientos_nuevos += 1  # Simplificamos: todo lo nuevo cuenta como nuevo
             
             # Añadir a cola de generación
             item_cola = {
@@ -440,8 +393,7 @@ class ProcedureScanner:
             "success": True,
             "message": f"Escaneo completado: {len(archivos_encontrados)} archivos procesados",
             "archivos_encontrados": len(archivos_encontrados),
-            "procedimientos_nuevos": procedimientos_nuevos,
-            "procedimientos_actualizados": procedimientos_actualizados,
+            "procedimientos_pendientes": procedimientos_nuevos,  # ✅ cambiar nombre
             "cola_generacion": cola_generacion,
             "tracking_file": str(self.tracking_file),
             "timestamp": datetime.now().isoformat()
@@ -467,7 +419,7 @@ class ProcedureScanner:
         Marcar un procedimiento como que ya tiene preguntas generadas
         """
         tracking_data = self.cargar_tracking_data()
-        tracking_key = f"{codigo}_v{version}"
+        tracking_key = create_tracking_key(codigo, version)
         
         # CORREGIDO: Manejar diferentes tipos de datos de preguntas
         preguntas_count = 0
@@ -509,7 +461,7 @@ class ProcedureScanner:
         (marcándolo como procesado sin generar preguntas)
         """
         tracking_data = self.cargar_tracking_data()
-        tracking_key = f"{codigo}_v{version}"
+        tracking_key = create_tracking_key(codigo, version)
         
         tracking_data["generated_questions"][tracking_key] = {
             "codigo": codigo,
@@ -532,7 +484,7 @@ def crear_scanner(procedures_dir: str = None) -> ProcedureScanner:
     Crear instancia del scanner con configuración por defecto
     """
     if procedures_dir is None:
-        procedures_dir = os.getenv("PROCEDURES_SOURCE_DIR", "data/procedures_source")
+        procedures_dir = os.getenv("PROCEDURES_SOURCE_DIR", "backend/data/procedures_source")
     
     return ProcedureScanner(procedures_dir)
 

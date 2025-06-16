@@ -208,7 +208,7 @@ class ExcelSyncManager:
         """
         try:
             # Preparar archivo de preguntas generadas
-            generated_file = Path("data/generated_questions.json")
+            generated_file = Path("backend/data/generated_questions.json")
             
             # Cargar existente o crear nuevo
             if generated_file.exists():
