@@ -90,7 +90,7 @@ La respuesta debe ser una lista de cinco objetos en formato JSON, con la siguien
     "version_proc": 1,
     "version_preg": 1,
     "prompt": "1.1",
-    "tipo_proc": OPERATIVO,
+    "tipo_proc": OPERATIVO o TECNICO o ADMINISTRATIVO,
     "puntaje_ia": 0,
     "puntaje_e1": 0,
     "puntaje_e2": 0,
@@ -114,7 +114,7 @@ La respuesta debe ser una lista de cinco objetos en formato JSON, con la siguien
     "version_proc": 1,
     "version_preg": 1,
     "prompt": "1.1",
-    "tipo_proc": OPERATIVO,
+    "tipo_proc": OPERATIVO o TECNICO o ADMINISTRATIVO,
     "puntaje_ia": 0,
     "puntaje_e1": 0,
     "puntaje_e2": 0,
@@ -137,7 +137,7 @@ La respuesta debe ser una lista de cinco objetos en formato JSON, con la siguien
 ]
 111
 Ten en cuenta: 
-- tipo_proc se refiere al tipo de procedimiento y puede ser OPERATIVO, técnico o administrativo. En los procedimientos OPERATIVOS, no puedes utilizar la palabra técnico para referirte a una persona, usa el término "operador".
+- tipo_proc se refiere al tipo de procedimiento y puede ser OPERATIVO, TECNICO o ADMINISTRATIVO, esto se especifica en el encabezado del procedimiento, tú debes poner el tipo en el objeto json a la salida. En los procedimientos OPERATIVOS, no puedes utilizar la palabra "técnico" para referirte a una persona, usa el término "operador".
 - Se debe asegurar que la pregunta sea difícil de escoger: Que la opción correcta no sea evidente (que las opciones incorrectas no sean fáciles de descartar).
 - Ten en cuenta que todos los pasos son OBLIGATORIOS, pero tal vez haya algunos más "importantes" o críticos que otros.
 
