@@ -18,7 +18,11 @@ OPENAI_API_KEY = ""
 
 
 # Directorio base del backend
-BASE_DIR = Path(__file__).resolve().parents[1]
+# En Docker, el directorio de trabajo es /app
+if os.getenv("ENVIRONMENT") == "production":
+    BASE_DIR = Path("/app")
+else:
+    BASE_DIR = Path(__file__).resolve().parents[1]
 
 # Configuración por defecto para generación
 GENERATION_CONFIG = {

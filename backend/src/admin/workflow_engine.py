@@ -333,7 +333,9 @@ class WorkflowEngine:
             await self._save_batch_results(corrected_batch)
             
             # NUEVO: Guardar en archivos finales
+            print(f"🔄 [DEBUG] Iniciando guardado de archivos finales...")
             await self._save_to_final_files(corrected_batch)
+            print(f"✅ [DEBUG] Guardado de archivos finales completado")
             
             # Marcar como completado
             task.mark_completed()
@@ -356,7 +358,9 @@ class WorkflowEngine:
                 print(f"✅ Marcado como generado: {codigo}_v{task.queue_item.version} ({len(corrected_batch.questions)} preguntas)")
             
             # NUEVO: Actualizar tracking principal
+            print(f"🔄 [DEBUG] Iniciando actualización de tracking principal...")
             await self._update_main_tracking(corrected_batch, validation_score)
+            print(f"✅ [DEBUG] Actualización de tracking principal completada")
             
         except Exception as e:
             task.mark_failed(str(e))
@@ -599,27 +603,55 @@ class WorkflowEngine:
         Guardar el lote en los archivos finales: generated_questions.json
         """
         try:
-            print(f"💾 Guardando lote {batch.batch_id} en archivos finales...")
+            print(f"💾 [DEBUG] Iniciando guardado de lote {batch.batch_id} en archivos finales...")
             
             # Importar funciones de configuración
-            from .config import get_admin_file_path
+            from .config import get_admin_file_path, BASE_DIR
+            
+            # DEBUG: Mostrar información del entorno
+            import os
+            print(f"💾 [DEBUG] Entorno actual:")
+            print(f"   - ENVIRONMENT: {os.getenv('ENVIRONMENT', 'No definido')}")
+            print(f"   - BASE_DIR: {BASE_DIR}")
+            print(f"   - Directorio actual: {os.getcwd()}")
+            print(f"   - PYTHONPATH: {os.getenv('PYTHONPATH', 'No definido')}")
             
             # Ruta del archivo de preguntas generadas
             generated_questions_file = get_admin_file_path("generated_questions")
+            print(f"💾 [DEBUG] Ruta de archivo destino: {generated_questions_file}")
+            print(f"💾 [DEBUG] Archivo existe: {generated_questions_file.exists()}")
+            print(f"💾 [DEBUG] Directorio padre existe: {generated_questions_file.parent.exists()}")
+            
+            # Verificar permisos del directorio
+            parent_dir = generated_questions_file.parent
+            if parent_dir.exists():
+                print(f"💾 [DEBUG] Permisos del directorio {parent_dir}: {oct(parent_dir.stat().st_mode)[-3:]}")
+            else:
+                print(f"💾 [DEBUG] Creando directorio padre: {parent_dir}")
+                parent_dir.mkdir(parents=True, exist_ok=True)
             
             # Cargar preguntas existentes
             existing_questions = []
             if generated_questions_file.exists():
                 try:
+                    print(f"💾 [DEBUG] Leyendo archivo existente...")
                     with open(generated_questions_file, 'r', encoding='utf-8') as f:
                         existing_questions = json.load(f)
-                except json.JSONDecodeError:
-                    print("⚠️ Archivo generated_questions.json corrupto, creando nuevo")
+                    print(f"💾 [DEBUG] Preguntas existentes cargadas: {len(existing_questions)}")
+                except json.JSONDecodeError as e:
+                    print(f"⚠️ [DEBUG] Archivo generated_questions.json corrupto: {e}")
                     existing_questions = []
+                except Exception as e:
+                    print(f"❌ [DEBUG] Error leyendo archivo: {e}")
+                    existing_questions = []
+            else:
+                print(f"💾 [DEBUG] Archivo no existe, será creado")
             
             # Convertir preguntas del batch al formato final
+            print(f"💾 [DEBUG] Convirtiendo {len(batch.questions)} preguntas al formato final...")
             new_questions = []
-            for question in batch.questions:
+            for i, question in enumerate(batch.questions):
+                print(f"💾 [DEBUG] Procesando pregunta {i+1}: {question.pregunta[:50]}...")
                 question_data = {
                     "codigo_procedimiento": batch.procedure_codigo,
                     "version_proc": int(batch.procedure_version),
@@ -646,12 +678,29 @@ class WorkflowEngine:
                 }
                 new_questions.append(question_data)
             
+            print(f"💾 [DEBUG] Preguntas convertidas: {len(new_questions)}")
+            
             # Combinar con preguntas existentes
             all_questions = existing_questions + new_questions
+            print(f"💾 [DEBUG] Total preguntas a guardar: {len(all_questions)}")
             
             # Guardar archivo actualizado
-            with open(generated_questions_file, 'w', encoding='utf-8') as f:
-                json.dump(all_questions, f, indent=2, ensure_ascii=False)
+            print(f"💾 [DEBUG] Guardando archivo en: {generated_questions_file}")
+            try:
+                with open(generated_questions_file, 'w', encoding='utf-8') as f:
+                    json.dump(all_questions, f, indent=2, ensure_ascii=False)
+                print(f"💾 [DEBUG] Archivo guardado exitosamente")
+                
+                # Verificar que se guardó correctamente
+                if generated_questions_file.exists():
+                    file_size = generated_questions_file.stat().st_size
+                    print(f"💾 [DEBUG] Verificación: archivo existe, tamaño: {file_size} bytes")
+                else:
+                    print(f"❌ [DEBUG] ERROR: Archivo no existe después de guardado")
+                    
+            except Exception as write_error:
+                print(f"❌ [DEBUG] Error escribiendo archivo: {write_error}")
+                raise
             
             print(f"   ✅ Guardadas {len(new_questions)} preguntas en {generated_questions_file}")
             print(f"   📊 Total preguntas en archivo: {len(all_questions)}")
@@ -665,25 +714,50 @@ class WorkflowEngine:
         Actualizar el archivo principal de tracking: question_generation_tracking.json
         """
         try:
-            print(f"📋 Actualizando tracking principal para {batch.batch_id}...")
+            print(f"📋 [DEBUG] Iniciando actualización de tracking para {batch.batch_id}...")
             
             # Importar funciones de configuración
-            from .config import get_admin_file_path
+            from .config import get_admin_file_path, BASE_DIR
+            
+            # DEBUG: Mostrar información del entorno
+            import os
+            print(f"📋 [DEBUG] Información de tracking:")
+            print(f"   - BASE_DIR: {BASE_DIR}")
+            print(f"   - Directorio actual: {os.getcwd()}")
             
             # Ruta del archivo de tracking
             tracking_file = get_admin_file_path("tracking")
+            print(f"📋 [DEBUG] Ruta de archivo tracking: {tracking_file}")
+            print(f"📋 [DEBUG] Archivo tracking existe: {tracking_file.exists()}")
+            print(f"📋 [DEBUG] Directorio padre existe: {tracking_file.parent.exists()}")
+            
+            # Verificar/crear directorio padre
+            parent_dir = tracking_file.parent
+            if not parent_dir.exists():
+                print(f"📋 [DEBUG] Creando directorio padre: {parent_dir}")
+                parent_dir.mkdir(parents=True, exist_ok=True)
             
             # Cargar tracking existente
             tracking_data = {}
             if tracking_file.exists():
                 try:
+                    print(f"📋 [DEBUG] Leyendo archivo tracking existente...")
                     with open(tracking_file, 'r', encoding='utf-8') as f:
                         content = f.read().strip()
                         if content:
                             tracking_data = json.loads(content)
-                except json.JSONDecodeError:
-                    print("⚠️ Archivo tracking corrupto, creando nuevo")
+                            print(f"📋 [DEBUG] Tracking cargado: {len(tracking_data)} entradas")
+                        else:
+                            print(f"📋 [DEBUG] Archivo tracking está vacío")
+                            tracking_data = {}
+                except json.JSONDecodeError as e:
+                    print(f"⚠️ [DEBUG] Archivo tracking corrupto: {e}")
                     tracking_data = {}
+                except Exception as e:
+                    print(f"❌ [DEBUG] Error leyendo tracking: {e}")
+                    tracking_data = {}
+            else:
+                print(f"📋 [DEBUG] Archivo tracking no existe, será creado")
             
             # Crear estructura del batch para tracking
             batch_tracking = {
@@ -724,11 +798,27 @@ class WorkflowEngine:
             
             # Actualizar tracking data con el nuevo batch
             # Usar el batch_id como clave para evitar duplicados
+            print(f"📋 [DEBUG] Agregando batch al tracking: {batch.batch_id}")
             tracking_data[batch.batch_id] = batch_tracking
+            print(f"📋 [DEBUG] Total entradas en tracking: {len(tracking_data)}")
             
             # Guardar archivo de tracking actualizado
-            with open(tracking_file, 'w', encoding='utf-8') as f:
-                json.dump(tracking_data, f, indent=2, ensure_ascii=False)
+            print(f"📋 [DEBUG] Guardando archivo tracking en: {tracking_file}")
+            try:
+                with open(tracking_file, 'w', encoding='utf-8') as f:
+                    json.dump(tracking_data, f, indent=2, ensure_ascii=False)
+                print(f"📋 [DEBUG] Archivo tracking guardado exitosamente")
+                
+                # Verificar que se guardó correctamente
+                if tracking_file.exists():
+                    file_size = tracking_file.stat().st_size
+                    print(f"📋 [DEBUG] Verificación: archivo existe, tamaño: {file_size} bytes")
+                else:
+                    print(f"❌ [DEBUG] ERROR: Archivo tracking no existe después de guardado")
+                    
+            except Exception as write_error:
+                print(f"❌ [DEBUG] Error escribiendo archivo tracking: {write_error}")
+                raise
             
             print(f"   ✅ Tracking actualizado: {batch.batch_id}")
             print(f"   📊 Procedimiento: {batch.procedure_codigo} v{batch.procedure_version}")
