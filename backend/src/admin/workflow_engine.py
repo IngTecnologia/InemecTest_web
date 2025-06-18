@@ -332,6 +332,9 @@ class WorkflowEngine:
             # Guardar resultados temporales
             await self._save_batch_results(corrected_batch)
             
+            # NUEVO: Guardar en archivos finales
+            await self._save_to_final_files(corrected_batch)
+            
             # Marcar como completado
             task.mark_completed()
             
@@ -351,6 +354,9 @@ class WorkflowEngine:
                     tracking_data
                 )
                 print(f"✅ Marcado como generado: {codigo}_v{task.queue_item.version} ({len(corrected_batch.questions)} preguntas)")
+            
+            # NUEVO: Actualizar tracking principal
+            await self._update_main_tracking(corrected_batch, validation_score)
             
         except Exception as e:
             task.mark_failed(str(e))
@@ -587,6 +593,150 @@ class WorkflowEngine:
         
         self.active_batch_id = None
         return True
+
+    async def _save_to_final_files(self, batch: QuestionBatch):
+        """
+        Guardar el lote en los archivos finales: generated_questions.json
+        """
+        try:
+            print(f"💾 Guardando lote {batch.batch_id} en archivos finales...")
+            
+            # Importar funciones de configuración
+            from .config import get_admin_file_path
+            
+            # Ruta del archivo de preguntas generadas
+            generated_questions_file = get_admin_file_path("generated_questions")
+            
+            # Cargar preguntas existentes
+            existing_questions = []
+            if generated_questions_file.exists():
+                try:
+                    with open(generated_questions_file, 'r', encoding='utf-8') as f:
+                        existing_questions = json.load(f)
+                except json.JSONDecodeError:
+                    print("⚠️ Archivo generated_questions.json corrupto, creando nuevo")
+                    existing_questions = []
+            
+            # Convertir preguntas del batch al formato final
+            new_questions = []
+            for question in batch.questions:
+                question_data = {
+                    "codigo_procedimiento": batch.procedure_codigo,
+                    "version_proc": int(batch.procedure_version),
+                    "version_preg": getattr(question, 'version_preg', 1),
+                    "prompt": getattr(question, 'prompt', "1.1"),
+                    "puntaje_ia": getattr(question, 'puntaje_ia', 0),
+                    "puntaje_e1": 0,
+                    "puntaje_e2": 0,
+                    "puntaje_e3": 0,
+                    "puntaje_e4": 0,
+                    "comentario_e1": "",
+                    "comentario_e2": "",
+                    "comentario_e3": "",
+                    "comentario_e4": "",
+                    "pregunta": question.pregunta,
+                    "opciones": question.opciones,
+                    "historial_revision": question.historial_revision,
+                    # Metadatos adicionales
+                    "batch_id": batch.batch_id,
+                    "question_id": question.id,
+                    "status": question.status.value,
+                    "created_at": question.created_at,
+                    "updated_at": question.updated_at
+                }
+                new_questions.append(question_data)
+            
+            # Combinar con preguntas existentes
+            all_questions = existing_questions + new_questions
+            
+            # Guardar archivo actualizado
+            with open(generated_questions_file, 'w', encoding='utf-8') as f:
+                json.dump(all_questions, f, indent=2, ensure_ascii=False)
+            
+            print(f"   ✅ Guardadas {len(new_questions)} preguntas en {generated_questions_file}")
+            print(f"   📊 Total preguntas en archivo: {len(all_questions)}")
+            
+        except Exception as e:
+            print(f"   ❌ Error guardando en archivos finales: {e}")
+            raise
+    
+    async def _update_main_tracking(self, batch: QuestionBatch, validation_score: float):
+        """
+        Actualizar el archivo principal de tracking: question_generation_tracking.json
+        """
+        try:
+            print(f"📋 Actualizando tracking principal para {batch.batch_id}...")
+            
+            # Importar funciones de configuración
+            from .config import get_admin_file_path
+            
+            # Ruta del archivo de tracking
+            tracking_file = get_admin_file_path("tracking")
+            
+            # Cargar tracking existente
+            tracking_data = {}
+            if tracking_file.exists():
+                try:
+                    with open(tracking_file, 'r', encoding='utf-8') as f:
+                        content = f.read().strip()
+                        if content:
+                            tracking_data = json.loads(content)
+                except json.JSONDecodeError:
+                    print("⚠️ Archivo tracking corrupto, creando nuevo")
+                    tracking_data = {}
+            
+            # Crear estructura del batch para tracking
+            batch_tracking = {
+                "batch_id": batch.batch_id,
+                "procedure_codigo": batch.procedure_codigo,
+                "procedure_version": batch.procedure_version,
+                "procedure_name": batch.procedure_name,
+                "status": batch.status.value,
+                "created_at": batch.created_at,
+                "updated_at": batch.updated_at,
+                "total_questions": len(batch.questions),
+                "validation_score": validation_score,
+                "questions": []
+            }
+            
+            # Agregar detalles de cada pregunta
+            for question in batch.questions:
+                question_detail = {
+                    "id": question.id,
+                    "pregunta": question.pregunta,
+                    "opciones": question.opciones,
+                    "status": question.status.value,
+                    "validations": [
+                        {
+                            "validator_type": v.validator_type.value,
+                            "score": v.score,
+                            "comment": v.comment,
+                            "timestamp": v.timestamp
+                        }
+                        for v in question.validations
+                    ],
+                    "historial_revision": question.historial_revision,
+                    "version_preg": getattr(question, 'version_preg', 1),
+                    "prompt": getattr(question, 'prompt', "1.1"),
+                    "puntaje_ia": getattr(question, 'puntaje_ia', 0)
+                }
+                batch_tracking["questions"].append(question_detail)
+            
+            # Actualizar tracking data con el nuevo batch
+            # Usar el batch_id como clave para evitar duplicados
+            tracking_data[batch.batch_id] = batch_tracking
+            
+            # Guardar archivo de tracking actualizado
+            with open(tracking_file, 'w', encoding='utf-8') as f:
+                json.dump(tracking_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"   ✅ Tracking actualizado: {batch.batch_id}")
+            print(f"   📊 Procedimiento: {batch.procedure_codigo} v{batch.procedure_version}")
+            print(f"   📊 Preguntas: {len(batch.questions)}, Score: {validation_score:.2f}")
+            
+        except Exception as e:
+            print(f"   ❌ Error actualizando tracking principal: {e}")
+            raise
 
 # =============================================================================
 # FUNCIONES DE UTILIDAD
