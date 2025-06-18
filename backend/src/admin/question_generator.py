@@ -147,8 +147,11 @@ class QuestionGenerator:
             # Realizar llamada a OpenAI con reintentos
             preguntas_raw = await self._call_openai_with_retries(mensaje_usuario)
             
+            # Limpiar markdown JSON markers
+            preguntas_clean = self._clean_json_response(preguntas_raw)
+            
             # Parsear respuesta JSON
-            preguntas_obj = json.loads(preguntas_raw)
+            preguntas_obj = json.loads(preguntas_clean)
             
             # Validar que se generaron exactamente 5 preguntas
             expected_questions = 1 if self.debug_config["test_with_single_question"] else 5
@@ -176,11 +179,22 @@ class QuestionGenerator:
                     id=question_id,
                     procedure_codigo=codigo,
                     procedure_version=str(version),
+                    codigo_procedimiento=pregunta_data.get("codigo_procedimiento", codigo),  # Campo requerido
+                    version_proc=pregunta_data.get("version_proc", version),
+                    tipo_proc=pregunta_data.get("tipo_proc", "TECNICO"),
                     pregunta=pregunta_data["pregunta"],
                     opciones=pregunta_data["opciones"],
                     version_preg=pregunta_data.get("version_preg", 1),
                     prompt=pregunta_data.get("prompt", "1.1"),
                     puntaje_ia=pregunta_data.get("puntaje_ia", 0),
+                    puntaje_e1=pregunta_data.get("puntaje_e1", 0),
+                    puntaje_e2=pregunta_data.get("puntaje_e2", 0),
+                    puntaje_e3=pregunta_data.get("puntaje_e3", 0),
+                    puntaje_e4=pregunta_data.get("puntaje_e4", 0),
+                    comentario_e1=pregunta_data.get("comentario_e1", ""),
+                    comentario_e2=pregunta_data.get("comentario_e2", ""),
+                    comentario_e3=pregunta_data.get("comentario_e3", ""),
+                    comentario_e4=pregunta_data.get("comentario_e4", ""),
                     validations=[],  # Se llenarán en el proceso de validación
                     status=QuestionStatus.generated,
                     created_at=get_current_timestamp(),
@@ -301,6 +315,28 @@ class QuestionGenerator:
                     await asyncio.sleep(wait_time)
         
         raise Exception(f"Todos los intentos de llamada a OpenAI fallaron. Último error: {last_error}")
+    
+    def _clean_json_response(self, response: str) -> str:
+        """
+        Limpiar la respuesta de OpenAI removiendo bloques de código markdown
+        """
+        import re
+        
+        # Remover bloques de código ```json ... ```
+        cleaned = re.sub(r'```json\s*\n?(.*?)\n?```', r'\1', response, flags=re.DOTALL)
+        
+        # Remover bloques de código ``` ... ```
+        cleaned = re.sub(r'```\s*\n?(.*?)\n?```', r'\1', cleaned, flags=re.DOTALL)
+        
+        # Limpiar espacios en blanco al inicio y final
+        cleaned = cleaned.strip()
+        
+        if DEBUG_CONFIG["verbose_logging"]:
+            print(f"🧹 Limpieza de respuesta del generador:")
+            print(f"   📤 Original: {response[:100]}...")
+            print(f"   📥 Limpio: {cleaned[:100]}...")
+        
+        return cleaned
     
     def _validate_question_structure(self, pregunta_data: Dict[str, Any]) -> None:
         """

@@ -705,6 +705,7 @@ MOCK_RESPONSES = {
     "version_proc": 1,
     "version_preg": 1,
     "prompt": "1.1",
+    "tipo_proc": "TECNICO",
     "puntaje_ia": 0,
     "puntaje_e1": 0,
     "puntaje_e2": 0,
@@ -722,10 +723,233 @@ MOCK_RESPONSES = {
       "Revisar documentación"
     ],
     "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "TEST-001",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "tipo_proc": "TECNICO",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué debe verificarse antes de iniciar?",
+    "opciones": [
+      "Estado de los equipos",
+      "Hora del día", 
+      "Número de personas",
+      "Color de las herramientas"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "TEST-001",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "tipo_proc": "TECNICO",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cómo se realiza la verificación?",
+    "opciones": [
+      "Siguiendo la lista de chequeo",
+      "De forma aleatoria", 
+      "Solo visualmente",
+      "Preguntando a otros"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "TEST-001",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "tipo_proc": "TECNICO",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Cuándo se debe reportar una anomalía?",
+    "opciones": [
+      "Inmediatamente al detectarla",
+      "Al final del turno", 
+      "Solo si es grave",
+      "Nunca"
+    ],
+    "historial_revision": []
+  },
+  {
+    "codigo_procedimiento": "TEST-001",
+    "version_proc": 1,
+    "version_preg": 1,
+    "prompt": "1.1",
+    "tipo_proc": "TECNICO",
+    "puntaje_ia": 0,
+    "puntaje_e1": 0,
+    "puntaje_e2": 0,
+    "puntaje_e3": 0,
+    "puntaje_e4": 0,
+    "comentario_e1": "",
+    "comentario_e2": "",
+    "comentario_e3": "",
+    "comentario_e4": "",
+    "pregunta": "¿Qué documentación se debe completar?",
+    "opciones": [
+      "Registro de actividades realizadas",
+      "Solo la firma", 
+      "Nada específico",
+      "Solo fecha y hora"
+    ],
+    "historial_revision": []
   }
 ]""",
-    "validator": '{"score": 1, "comment": "Pregunta estructuralmente correcta para testing"}',
-    "corrector": """{"pregunta_corregida": "¿Cuál es el primer paso del procedimiento de prueba?", "opciones_corregidas": ["Verificar condiciones iniciales", "Iniciar operación directamente", "Contactar supervisor", "Revisar documentación"], "correcciones_aplicadas": {"estructura": "Ninguna", "tecnico": "Ninguna", "dificultad": "Ninguna", "claridad": "Ninguna"}, "resumen_cambios": "Sin cambios necesarios"}"""
+    "validator": """[
+      {"puntaje_e1": 1, "comentario_e1": ""},
+      {"puntaje_e1": 1, "comentario_e1": ""},
+      {"puntaje_e1": 1, "comentario_e1": ""},
+      {"puntaje_e1": 1, "comentario_e1": ""},
+      {"puntaje_e1": 1, "comentario_e1": ""}
+    ]""",
+    "corrector": """[
+      {
+        "codigo_procedimiento": "TEST-001",
+        "version_proc": 1,
+        "version_preg": 1,
+        "prompt": "1.1",
+        "tipo_proc": "TECNICO",
+        "puntaje_ia": 0,
+        "puntaje_e1": 1,
+        "puntaje_e2": 1,
+        "puntaje_e3": 1,
+        "puntaje_e4": 1,
+        "comentario_e1": "",
+        "comentario_e2": "",
+        "comentario_e3": "",
+        "comentario_e4": "",
+        "pregunta": "¿Cuál es el primer paso del procedimiento de prueba?",
+        "opciones": [
+          "Verificar condiciones iniciales",
+          "Iniciar operación directamente",
+          "Contactar supervisor",
+          "Revisar documentación"
+        ],
+        "historial_revision": []
+      },
+      {
+        "codigo_procedimiento": "TEST-001",
+        "version_proc": 1,
+        "version_preg": 1,
+        "prompt": "1.1",
+        "tipo_proc": "TECNICO",
+        "puntaje_ia": 0,
+        "puntaje_e1": 1,
+        "puntaje_e2": 1,
+        "puntaje_e3": 1,
+        "puntaje_e4": 1,
+        "comentario_e1": "",
+        "comentario_e2": "",
+        "comentario_e3": "",
+        "comentario_e4": "",
+        "pregunta": "¿Qué debe verificarse antes de iniciar?",
+        "opciones": [
+          "Estado de los equipos",
+          "Hora del día",
+          "Número de personas",
+          "Color de las herramientas"
+        ],
+        "historial_revision": []
+      },
+      {
+        "codigo_procedimiento": "TEST-001",
+        "version_proc": 1,
+        "version_preg": 1,
+        "prompt": "1.1",
+        "tipo_proc": "TECNICO",
+        "puntaje_ia": 0,
+        "puntaje_e1": 1,
+        "puntaje_e2": 1,
+        "puntaje_e3": 1,
+        "puntaje_e4": 1,
+        "comentario_e1": "",
+        "comentario_e2": "",
+        "comentario_e3": "",
+        "comentario_e4": "",
+        "pregunta": "¿Cómo se realiza la verificación?",
+        "opciones": [
+          "Siguiendo la lista de chequeo",
+          "De forma aleatoria",
+          "Solo visualmente",
+          "Preguntando a otros"
+        ],
+        "historial_revision": []
+      },
+      {
+        "codigo_procedimiento": "TEST-001",
+        "version_proc": 1,
+        "version_preg": 1,
+        "prompt": "1.1",
+        "tipo_proc": "TECNICO",
+        "puntaje_ia": 0,
+        "puntaje_e1": 1,
+        "puntaje_e2": 1,
+        "puntaje_e3": 1,
+        "puntaje_e4": 1,
+        "comentario_e1": "",
+        "comentario_e2": "",
+        "comentario_e3": "",
+        "comentario_e4": "",
+        "pregunta": "¿Cuándo se debe reportar una anomalía?",
+        "opciones": [
+          "Inmediatamente al detectarla",
+          "Al final del turno",
+          "Solo si es grave",
+          "Nunca"
+        ],
+        "historial_revision": []
+      },
+      {
+        "codigo_procedimiento": "TEST-001",
+        "version_proc": 1,
+        "version_preg": 1,
+        "prompt": "1.1",
+        "tipo_proc": "TECNICO",
+        "puntaje_ia": 0,
+        "puntaje_e1": 1,
+        "puntaje_e2": 1,
+        "puntaje_e3": 1,
+        "puntaje_e4": 1,
+        "comentario_e1": "",
+        "comentario_e2": "",
+        "comentario_e3": "",
+        "comentario_e4": "",
+        "pregunta": "¿Qué documentación se debe completar?",
+        "opciones": [
+          "Registro de actividades realizadas",
+          "Solo la firma",
+          "Nada específico",
+          "Solo fecha y hora"
+        ],
+        "historial_revision": []
+      }
+    ]"""
 }
 
 if __name__ == "__main__":

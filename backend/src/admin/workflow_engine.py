@@ -128,11 +128,16 @@ class WorkflowEngine:
             print("   ✅ Generator inicializado")
         except Exception as e:
             print(f"   ❌ Error inicializando Generator: {e}")
-            self.generator = None
-            # IMPORTANTE: No detener el workflow, activar modo mock
             print("   🔄 Activando modo mock para generator...")
             from .config import DEBUG_CONFIG
             DEBUG_CONFIG["mock_openai_calls"] = True
+            # Intentar crear generador en modo mock
+            try:
+                self.generator = create_generator()
+                print("   ✅ Generator inicializado en modo mock")
+            except Exception as e2:
+                print(f"   ❌ Error incluso en modo mock: {e2}")
+                self.generator = None
         
         try:
             self.validation_engine = create_validation_engine()
@@ -282,7 +287,15 @@ class WorkflowEngine:
             task.update_progress(2, WorkflowState.GENERATING, "Generando preguntas...")
             
             if not self.generator:
-                raise Exception("Generator no disponible")
+                # Intentar crear generador con modo mock activado
+                print("   🔄 Intentando crear generador con modo mock...")
+                from .config import DEBUG_CONFIG
+                DEBUG_CONFIG["mock_openai_calls"] = True
+                try:
+                    self.generator = create_generator()
+                    print("   ✅ Generator creado en modo mock")
+                except Exception as e:
+                    raise Exception(f"Generator no disponible ni en modo mock: {e}")
             
             question_batch = await self.generator.generate_questions_for_procedure(
                 procedure_file, 

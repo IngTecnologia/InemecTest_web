@@ -246,6 +246,28 @@ RESULTADOS DE VALIDACIÓN:
         print(f"⚠️ Todos los intentos de corrección fallaron, usando respuesta mock")
         return MOCK_RESPONSES["corrector"]
     
+    def _clean_json_response(self, response: str) -> str:
+        """
+        Limpiar la respuesta de OpenAI removiendo bloques de código markdown
+        """
+        import re
+        
+        # Remover bloques de código ```json ... ```
+        cleaned = re.sub(r'```json\s*\n?(.*?)\n?```', r'\1', response, flags=re.DOTALL)
+        
+        # Remover bloques de código ``` ... ```
+        cleaned = re.sub(r'```\s*\n?(.*?)\n?```', r'\1', cleaned, flags=re.DOTALL)
+        
+        # Limpiar espacios en blanco al inicio y final
+        cleaned = cleaned.strip()
+        
+        if DEBUG_CONFIG["verbose_logging"]:
+            print(f"🧹 Limpieza de respuesta del corrector:")
+            print(f"   📤 Original: {response[:100]}...")
+            print(f"   📥 Limpio: {cleaned[:100]}...")
+        
+        return cleaned
+    
     def _validate_correction_response(self, correction_data: Dict[str, Any]) -> None:
         """
         Validar que la respuesta del corrector tenga la estructura correcta
@@ -352,8 +374,11 @@ RESULTADOS DE VALIDACIÓN:
             # Realizar corrección de lote completo
             correction_response = await self._call_corrector_api(batch_prompt)
             
+            # Limpiar markdown JSON markers
+            clean_response = self._clean_json_response(correction_response)
+            
             # Parsear respuesta - debe ser un array de 5 objetos corregidos
-            correction_data = json.loads(correction_response)
+            correction_data = json.loads(clean_response)
             
             # Validar estructura de respuesta del batch
             self._validate_batch_correction_response(correction_data)
