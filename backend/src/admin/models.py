@@ -65,11 +65,13 @@ class ScannedProcedure(BaseModel):
     ruta_completa: str = Field(..., description="Ruta completa del archivo")
     fecha_escaneado: str = Field(..., description="Fecha de escaneo")
     
-    # Información técnica adicional - TODOS OPCIONALES
+    # Campos requeridos por procesar_procedimientos.py (compatibles con Excel)
     disciplina: str = Field("", description="Disciplina del procedimiento")
     recursos_requeridos: str = Field("", description="Recursos requeridos")
     elementos_proteccion: str = Field("", description="Elementos de protección personal")
     descripcion_actividades: str = Field("", description="Descripción completa de actividades")
+    tipo_procedimiento: str = Field("", description="Tipo de procedimiento (OPERATIVO/TECNICO/ADMINISTRATIVO)")
+    campo: str = Field("", description="Campo de aplicación del procedimiento")
     
     # Información de procesamiento
     error: Optional[str] = Field(None, description="Error durante procesamiento")

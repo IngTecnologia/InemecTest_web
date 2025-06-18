@@ -65,7 +65,15 @@ PROCEDURES_COLUMNS = {
     "codigo": "A",           # Código del procedimiento (ej: OP-001)
     "nombre": "B",           # Nombre del procedimiento
     "alcance": "C",          # Alcance del procedimiento
-    "objetivo": "D"          # Objetivo del procedimiento
+    "objetivo": "D",         # Objetivo del procedimiento
+    "version": "E",          # Versión del procedimiento
+    "edicion": "F",          # Edición del procedimiento
+    "disciplina": "G",       # Disciplina del procedimiento
+    "recursos_requeridos": "H",  # Recursos requeridos
+    "elementos_proteccion": "I", # Elementos de protección personal
+    "descripcion_actividades": "J", # Descripción completa de actividades
+    "tipo_procedimiento": "K",   # Tipo de procedimiento (OPERATIVO/TECNICO/ADMINISTRATIVO)
+    "campo": "L"             # Campo de aplicación del procedimiento
 }
 
 # Columnas para hoja de Preguntas

@@ -168,7 +168,7 @@ class ProcedureScanner:
     def procesar_documento(self, ruta_archivo: Path) -> Dict[str, Any]:
         """
         Procesa un documento .docx y extrae toda la información relevante
-        🔧 VERSIÓN CORREGIDA: Usa SOLO filename, ignora encabezado
+        🔧 VERSIÓN MEJORADA: Integra lógica de procesar_procedimientos.py
         """
         try:
             print(f"📄 [DEBUG] Intentando abrir documento: {ruta_archivo}")
@@ -181,11 +181,12 @@ class ProcedureScanner:
             # ✅ LIMPIAR el código de prefijos no deseados
             codigo_final = self._limpiar_codigo(codigo_raw)
             
-            # Extraer datos del encabezado SOLO para nombre (opcional)
+            # Extraer datos del encabezado con lógica mejorada
             datos_encabezado = self.extraer_datos_encabezado(doc)
             nombre_encabezado = datos_encabezado.get("nombre", "")
+            edicion_encabezado = datos_encabezado.get("edicion", "")
             
-            # 🎯 ESTRUCTURA SIMPLIFICADA usando solo filename
+            # 🎯 ESTRUCTURA COMPLETA usando procesar_procedimientos.py
             datos = {
                 "codigo": codigo_final,
                 "version": str(version_final),
@@ -193,13 +194,15 @@ class ProcedureScanner:
                 "alcance": "",
                 "objetivo": "",
                 "archivo": ruta_archivo.name,
-                "ruta_completa": str(ruta_archivo),  # ✅ AGREGAR ESTE CAMPO
+                "ruta_completa": str(ruta_archivo),
                 "fecha_escaneado": datetime.now().isoformat(),
-                "edicion": "",
+                "edicion": edicion_encabezado,
                 "disciplina": "",
                 "recursos_requeridos": "",
                 "elementos_proteccion": "",
-                "descripcion_actividades": ""
+                "descripcion_actividades": "",
+                "tipo_procedimiento": "",
+                "campo": ""
             }
             
             # 🔍 DEBUG: Mostrar datos procesados
@@ -209,9 +212,10 @@ class ProcedureScanner:
             print(f"   - Versión: {version_final}")
             print(f"   - Tracking key sería: {codigo_final}_v{version_final}")
             
-            # Extraer secciones opcionales (mantienes si las necesitas)
+            # Extraer secciones con lógica mejorada
             indices = self.detectar_secciones_principales(doc)
             
+            # Información General del Procedimiento
             if "INFORMACIÓN GENERAL DEL PROCEDIMIENTO" in indices and "PELIGROS, RIESGOS Y CONTROLES DE LA ACTIVIDAD" in indices:
                 info_general = self.extraer_seccion_info_general(
                     doc, 
@@ -220,6 +224,24 @@ class ProcedureScanner:
                 )
                 datos["alcance"] = info_general.get("ALCANCE", "")
                 datos["objetivo"] = info_general.get("OBJETO", "")
+                datos["disciplina"] = info_general.get("DISCIPLINA", "")
+                datos["recursos_requeridos"] = info_general.get("RECURSOS_REQUERIDOS", "")
+                datos["elementos_proteccion"] = info_general.get("ELEMENTOS_PROTECCION", "")
+            
+            # Descripción de Actividades
+            if "DESCRIPCIÓN DE ACTIVIDADES" in indices and "CONSIDERACIONES POSTERIORES A LA EJECUCIÓN DE LA ACTIVIDAD" in indices:
+                descripcion_texto = self.extraer_texto_completo_seccion(
+                    doc,
+                    indices["DESCRIPCIÓN DE ACTIVIDADES"],
+                    indices["CONSIDERACIONES POSTERIORES A LA EJECUCIÓN DE LA ACTIVIDAD"]
+                )
+                datos["descripcion_actividades"] = descripcion_texto
+            
+            # Detectar tipo de procedimiento basado en contenido
+            datos["tipo_procedimiento"] = self._detectar_tipo_procedimiento(doc, datos)
+            
+            # Campo se puede derivar del código o contenido
+            datos["campo"] = self._detectar_campo_procedimiento(codigo_final, datos)
             
             return datos
             
@@ -234,9 +256,16 @@ class ProcedureScanner:
                 "alcance": "",
                 "objetivo": "",
                 "archivo": ruta_archivo.name,
-                "ruta_completa": str(ruta_archivo),  # ✅ AGREGAR AQUÍ TAMBIÉN
+                "ruta_completa": str(ruta_archivo),
                 "error": str(e),
-                "fecha_escaneado": datetime.now().isoformat()
+                "fecha_escaneado": datetime.now().isoformat(),
+                "edicion": "",
+                "disciplina": "",
+                "recursos_requeridos": "",
+                "elementos_proteccion": "",
+                "descripcion_actividades": "",
+                "tipo_procedimiento": "",
+                "campo": ""
             }
 
     def _limpiar_codigo(self, codigo: str) -> str:
@@ -265,6 +294,76 @@ class ProcedureScanner:
                 print(f"   ✅ Código extraído: {codigo_limpio}")
         
         return codigo_limpio
+    
+    def _detectar_tipo_procedimiento(self, document: Document, datos: Dict[str, Any]) -> str:
+        """
+        Detectar tipo de procedimiento basado en contenido del documento
+        """
+        # Buscar en el encabezado y contenido
+        texto_completo = ""
+        
+        # Buscar en encabezado
+        try:
+            header = document.sections[0].header
+            if header.tables:
+                for table in header.tables:
+                    for row in table.rows:
+                        for cell in row.cells:
+                            texto_completo += cell.text.upper() + " "
+        except:
+            pass
+        
+        # Buscar en primeros párrafos
+        for i, para in enumerate(document.paragraphs[:20]):  # Solo primeros 20 párrafos
+            texto_completo += para.text.upper() + " "
+        
+        # Patrones para detectar tipo
+        if any(keyword in texto_completo for keyword in ["OPERATIVO", "OPERACIÓN", "OPERADOR"]):
+            return "OPERATIVO"
+        elif any(keyword in texto_completo for keyword in ["TÉCNICO", "TECNICO", "MANTENIMIENTO", "REPARACIÓN"]):
+            return "TECNICO"
+        elif any(keyword in texto_completo for keyword in ["ADMINISTRATIVO", "GESTIÓN", "ADMINISTRACIÓN"]):
+            return "ADMINISTRATIVO"
+        
+        # Default basado en código
+        if "PRO" in datos["codigo"]:
+            return "TECNICO"
+        
+        return "TECNICO"  # Default
+    
+    def _detectar_campo_procedimiento(self, codigo: str, datos: Dict[str, Any]) -> str:
+        """
+        Detectar campo del procedimiento basado en código y contenido
+        """
+        # Mapeo común de códigos a campos
+        codigo_upper = codigo.upper()
+        
+        # Campos conocidos basados en patrones comunes en la industria
+        if any(keyword in codigo_upper for keyword in ["CUPIAGUA", "CUP"]):
+            return "Campo Cupiagua"
+        elif any(keyword in codigo_upper for keyword in ["CUSIANA", "CUS"]):
+            return "Campo Cusiana"
+        elif any(keyword in codigo_upper for keyword in ["FLOREÑA", "FLO"]):
+            return "Campo Floreña"
+        elif any(keyword in codigo_upper for keyword in ["PAUTO", "PAU"]):
+            return "Campo Pauto"
+        
+        # Buscar en contenido
+        contenido_buscar = (datos.get("nombre", "") + " " + 
+                           datos.get("alcance", "") + " " + 
+                           datos.get("objetivo", "")).upper()
+        
+        if "CUPIAGUA" in contenido_buscar:
+            return "Campo Cupiagua"
+        elif "CUSIANA" in contenido_buscar:
+            return "Campo Cusiana"
+        elif "FLOREÑA" in contenido_buscar:
+            return "Campo Floreña"
+        elif "PAUTO" in contenido_buscar:
+            return "Campo Pauto"
+        
+        # Default genérico
+        return "Campo General"
     
     def cargar_tracking_data(self) -> Dict[str, Any]:
         """

@@ -339,7 +339,9 @@ class WorkflowEngine:
             from .excel_sync import create_excel_sync_manager
             
             sync_manager = create_excel_sync_manager()
-            sync_result = await sync_manager.sync_batch_to_excel(corrected_batch)
+            # Pasar datos completos del procedimiento para incluir campos nuevos
+            procedure_data = task.queue_item.datos_completos.dict() if hasattr(task.queue_item.datos_completos, 'dict') else task.queue_item.datos_completos
+            sync_result = await sync_manager.sync_batch_to_excel(corrected_batch, procedure_data)
             
             if sync_result["success"]:
                 print(f"   ✅ Sincronización con Excel completada")

@@ -15,6 +15,7 @@ from ..config import (
     get_data_file_path,
     DATA_SHEETS,
     QUESTIONS_COLUMNS,
+    PROCEDURES_COLUMNS,
     ensure_data_directory
 )
 from .config import get_admin_file_path
@@ -33,9 +34,13 @@ class ExcelSyncManager:
         print(f"📊 ExcelSyncManager inicializado:")
         print(f"   - Archivo Excel: {self.data_file}")
     
-    async def sync_batch_to_excel(self, batch: QuestionBatch) -> Dict[str, Any]:
+    async def sync_batch_to_excel(self, batch: QuestionBatch, procedure_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Sincronizar un lote de preguntas al archivo Excel
+        
+        Args:
+            batch: Lote de preguntas generadas
+            procedure_data: Datos completos del procedimiento (incluye campos nuevos)
         """
         try:
             print(f"📊 Sincronizando lote {batch.batch_id} al Excel...")
@@ -44,7 +49,7 @@ class ExcelSyncManager:
             await self._ensure_excel_file_exists()
             
             # 2. Agregar/actualizar procedimiento en hoja de Procedimientos
-            await self._sync_procedure_to_excel(batch)
+            await self._sync_procedure_to_excel(batch, procedure_data)
             
             # 3. Agregar preguntas a hoja de Preguntas
             questions_added = await self._sync_questions_to_excel(batch)
@@ -97,8 +102,12 @@ class ExcelSyncManager:
         # Crear hoja de Procedimientos
         ws_proc = wb.create_sheet(title=DATA_SHEETS["procedures"]["name"])
         
-        # Headers para Procedimientos
-        headers_proc = ["Código", "Nombre", "Alcance", "Objetivo"]
+        # Headers para Procedimientos (expandidos)
+        headers_proc = [
+            "Código", "Nombre", "Alcance", "Objetivo", "Versión", "Edición",
+            "Disciplina", "Recursos Requeridos", "Elementos Protección", 
+            "Descripción Actividades", "Tipo Procedimiento", "Campo"
+        ]
         for i, header in enumerate(headers_proc, 1):
             cell = ws_proc.cell(row=1, column=i, value=header)
             cell.font = Font(bold=True)
@@ -122,30 +131,64 @@ class ExcelSyncManager:
         
         print(f"✅ Archivo Excel creado: {self.data_file}")
     
-    async def _sync_procedure_to_excel(self, batch: QuestionBatch):
+    async def _sync_procedure_to_excel(self, batch: QuestionBatch, procedure_data: Optional[Dict[str, Any]] = None):
         """
         Agregar o actualizar procedimiento en la hoja de Procedimientos
+        
+        Args:
+            batch: Lote de preguntas
+            procedure_data: Datos completos del procedimiento escaneado
         """
         try:
             # Leer hoja de procedimientos existente
             try:
                 df_proc = pd.read_excel(self.data_file, sheet_name=DATA_SHEETS["procedures"]["name"])
             except Exception:
-                # Si no existe la hoja, crear DataFrame vacío
-                df_proc = pd.DataFrame(columns=["Código", "Nombre", "Alcance", "Objetivo"])
+                # Si no existe la hoja, crear DataFrame vacío con todas las columnas
+                df_proc = pd.DataFrame(columns=[
+                    "Código", "Nombre", "Alcance", "Objetivo", "Versión", "Edición",
+                    "Disciplina", "Recursos Requeridos", "Elementos Protección", 
+                    "Descripción Actividades", "Tipo Procedimiento", "Campo"
+                ])
             
             # Verificar si el procedimiento ya existe
             if not df_proc.empty and batch.procedure_codigo in df_proc["Código"].values:
                 print(f"   📝 Procedimiento {batch.procedure_codigo} ya existe en Excel")
                 return
             
-            # Agregar nuevo procedimiento
-            new_row = {
-                "Código": batch.procedure_codigo,
-                "Nombre": batch.procedure_name or f"Procedimiento {batch.procedure_codigo}",
-                "Alcance": f"Procedimiento técnico versión {batch.procedure_version}",
-                "Objetivo": f"Ejecutar procedimiento {batch.procedure_codigo} según especificaciones técnicas"
-            }
+            # Agregar nuevo procedimiento con datos completos
+            if procedure_data:
+                # Usar datos completos del procedimiento escaneado
+                new_row = {
+                    "Código": batch.procedure_codigo,
+                    "Nombre": procedure_data.get("nombre", "") or batch.procedure_name or f"Procedimiento {batch.procedure_codigo}",
+                    "Alcance": procedure_data.get("alcance", ""),
+                    "Objetivo": procedure_data.get("objetivo", ""),
+                    "Versión": procedure_data.get("version", batch.procedure_version),
+                    "Edición": procedure_data.get("edicion", ""),
+                    "Disciplina": procedure_data.get("disciplina", ""),
+                    "Recursos Requeridos": procedure_data.get("recursos_requeridos", ""),
+                    "Elementos Protección": procedure_data.get("elementos_proteccion", ""),
+                    "Descripción Actividades": procedure_data.get("descripcion_actividades", ""),
+                    "Tipo Procedimiento": procedure_data.get("tipo_procedimiento", ""),
+                    "Campo": procedure_data.get("campo", "")
+                }
+            else:
+                # Usar datos básicos si no hay datos completos disponibles
+                new_row = {
+                    "Código": batch.procedure_codigo,
+                    "Nombre": batch.procedure_name or f"Procedimiento {batch.procedure_codigo}",
+                    "Alcance": f"Procedimiento técnico versión {batch.procedure_version}",
+                    "Objetivo": f"Ejecutar procedimiento {batch.procedure_codigo} según especificaciones técnicas",
+                    "Versión": batch.procedure_version,
+                    "Edición": "",
+                    "Disciplina": "",
+                    "Recursos Requeridos": "",
+                    "Elementos Protección": "",
+                    "Descripción Actividades": "",
+                    "Tipo Procedimiento": "",
+                    "Campo": ""
+                }
             
             df_proc = pd.concat([df_proc, pd.DataFrame([new_row])], ignore_index=True)
             
@@ -276,7 +319,7 @@ def create_excel_sync_manager() -> ExcelSyncManager:
     """Crear instancia del sync manager"""
     return ExcelSyncManager()
 
-async def sync_batch_to_excel(batch: QuestionBatch) -> Dict[str, Any]:
+async def sync_batch_to_excel(batch: QuestionBatch, procedure_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Función de conveniencia para sincronizar un lote"""
     sync_manager = create_excel_sync_manager()
-    return await sync_manager.sync_batch_to_excel(batch)
+    return await sync_manager.sync_batch_to_excel(batch, procedure_data)
