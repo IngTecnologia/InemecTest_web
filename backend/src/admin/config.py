@@ -98,7 +98,6 @@ Cada pregunta debe cumplir con los siguientes **criterios obligatorios**:
 
 No añadas ninguna explicación, encabezado ni comentario fuera del array JSON. No marques cuál es la opción correcta. Las cinco preguntas deben formar un **array JSON de objetos** con la siguiente estructura:
 
-```json
 [
   {
     "codigo_procedimiento": "PEP-PRO-1234",
@@ -128,6 +127,7 @@ No añadas ninguna explicación, encabezado ni comentario fuera del array JSON. 
 ]
 
 Todas las preguntas deben ser de selección múltiple con única respuesta correcta. Asegúrate de cumplir estrictamente todos los puntos anteriores. No repitas texto innecesario ni incluyas elementos no solicitados.
+Tu respuesta solo debe ser el objeto JSON, sin los demarcadores \```json
 """
 
 # System message para validador 1 (estructura y forma)
@@ -143,7 +143,7 @@ Debes evaluar cada pregunta de forma individual y emitir dos elementos por cada 
   - `1` si la pregunta cumple completamente los criterios especificados.
   - `0` si la pregunta **debe corregirse** por incumplimiento de alguno de los criterios.
 
-- Un campo `comentario_e1`, con un **comentario breve y claro** (máximo 25 palabras) que indique cuál es el problema, si existe.
+- Un campo "comentario_e1", con un **comentario breve y claro** (máximo 25 palabras) que indique cuál es el problema, si existe.
 
 Tu evaluación debe enfocarse exclusivamente en los siguientes criterios:
 
@@ -168,6 +168,8 @@ Tu salida debe ser un array JSON de cinco objetos, uno por cada pregunta, con la
   {"puntaje_e1": 0, "comentario_e1": "Pregunta basada en número de paso"},
   {"puntaje_e1": 1, "comentario_e1": ""}
 ]
+
+Tu respuesta solo debe ser el objeto JSON, sin los demarcadores \```json
 """
 
 # System message para validador 2 (técnico - opción correcta)
@@ -211,6 +213,8 @@ Tu salida debe ser un array JSON de cinco objetos, uno por cada pregunta, con la
   {"puntaje_e2": 1, "comentario_e2": ""},
   {"puntaje_e2": 0, "comentario_e2": "Opción no está en el procedimiento"}
 ]
+
+Tu respuesta solo debe ser el objeto JSON, sin los demarcadores \```json
 """
 
 # System message para validador 3 (vocabulario técnico)
@@ -252,6 +256,8 @@ Tu salida debe ser un array JSON de cinco objetos, uno por cada pregunta, con la
   {"puntaje_e3": 0, "comentario_e3": "Dice 'Águila 20', debe decir Autoridad de Área Local"},
   {"puntaje_e3": 0, "comentario_e3": "Falta vocabulario técnico del procedimiento"}
 ]
+
+Tu respuesta solo debe ser el objeto JSON, sin los demarcadores \```json
 """
 
 # System message para validador 4 (dificultad)
@@ -291,6 +297,8 @@ Tu salida debe ser un array JSON de cinco objetos, uno por cada pregunta, con la
   {"puntaje_e4": 0, "comentario_e4": "Opciones incorrectas son fácilmente descartables"},
   {"puntaje_e4": 0, "comentario_e4": "Pregunta evalúa conocimiento técnico externo"}
 ]
+
+Tu respuesta solo debe ser el objeto JSON, sin los demarcadores \```json
 """
 
 # System message para el corrector final
@@ -318,7 +326,6 @@ Cuando realices una corrección, debes:
 5. **Aumentar en uno el valor de `version_preg`** si se realizó cualquier modificación a la pregunta o sus opciones.
 6. Añadir una entrada al campo `historial_revision` con esta estructura:
 
-```json
 {
   "pregunta_original": "Texto original de la pregunta",
   "opciones_originales": [...],
@@ -375,6 +382,7 @@ Ejemplo de objeto corregido:
 }
 
 Repite esta lógica para cada una de las cinco preguntas. La salida final debe ser un array JSON de cinco objetos (con la misma estructura que recibiste), actualizados según sea necesario.
+Tu respuesta solo debe ser el objeto JSON, sin los demarcadores \```json
 """
 
 # =============================================================================
