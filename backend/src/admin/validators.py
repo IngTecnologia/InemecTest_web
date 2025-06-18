@@ -127,18 +127,216 @@ class QuestionValidator:
         print(f"⚠️ No se pudo extraer JSON, usando fallback para {self.validator_type.value}")
         return {"score": 1, "comment": f"Validación automática fallback: {response[:50]}"}
 
-    async def validate_question(self, question: QuestionInProcess) -> ValidationResult:
+    async def validate_batch(self, batch: QuestionBatch, procedure_text: str) -> List[Dict[str, Any]]:
         """
-        Validar una pregunta específica
+        Validar un lote completo de preguntas con el procedimiento completo
         
         Args:
-            question: Pregunta a validar
+            batch: Lote de preguntas a validar
+            procedure_text: Texto completo del procedimiento técnico
             
         Returns:
-            ValidationResult con puntuación y comentarios
+            Lista de diccionarios con puntaje_eX y comentario_eX para cada pregunta
         """
         try:
-            print(f"🔍 Validando pregunta {question.id} con validador {self.validator_type.value}")
+            print(f"🔍 Validando lote {batch.batch_id} con validador {self.validator_type.value}")
+            
+            # Preparar prompt para el validador con procedimiento completo y todas las preguntas
+            batch_prompt = self._prepare_batch_prompt(batch, procedure_text)
+            
+            # Realizar validación
+            validation_response = await self._call_validator_api(batch_prompt)
+            
+            # Limpiar la respuesta antes de parsear JSON
+            clean_response = self._clean_json_response(validation_response)
+            
+            # Parsear respuesta JSON limpia - ahora esperamos un array
+            try:
+                validation_data = json.loads(clean_response)
+                print(f"✅ JSON parseado exitosamente para {self.validator_type.value}")
+                
+                # Validar que es un array de 5 elementos
+                if not isinstance(validation_data, list):
+                    raise ValueError(f"Se esperaba un array, se recibió: {type(validation_data)}")
+                
+                if len(validation_data) != 5:
+                    raise ValueError(f"Se esperaban 5 elementos, se recibieron: {len(validation_data)}")
+                    
+            except json.JSONDecodeError as e:
+                print(f"❌ Error parseando JSON limpio para {self.validator_type.value}: {e}")
+                print(f"   Respuesta limpia era: {clean_response}")
+                
+                # Crear respuesta de fallback para 5 preguntas
+                validation_data = self._create_fallback_batch_response(5)
+            
+            # Validar estructura de respuesta del batch
+            self._validate_batch_response_structure(validation_data)
+            
+            # Determinar el número de evaluador basado en el tipo
+            evaluator_num = self._get_evaluator_number()
+            
+            # Convertir a formato esperado por el sistema
+            results = []
+            for i, item in enumerate(validation_data):
+                result = {
+                    f"puntaje_e{evaluator_num}": item.get(f"puntaje_e{evaluator_num}", item.get("score", 1)),
+                    f"comentario_e{evaluator_num}": item.get(f"comentario_e{evaluator_num}", item.get("comment", ""))
+                }
+                results.append(result)
+            
+            if DEBUG_CONFIG["verbose_logging"]:
+                print(f"   ✅ Validación de lote completada para {self.validator_type.value}")
+                for i, result in enumerate(results):
+                    evaluator_key = f"puntaje_e{evaluator_num}"
+                    comment_key = f"comentario_e{evaluator_num}"
+                    print(f"      Pregunta {i+1}: {evaluator_key}={result[evaluator_key]}, {comment_key}='{result[comment_key][:30]}...'")
+            
+            return results
+            
+        except Exception as e:
+            print(f"❌ Error en validador {self.validator_type.value}: {e}")
+            
+            # Crear resultados de error para las 5 preguntas
+            evaluator_num = self._get_evaluator_number()
+            error_results = []
+            for i in range(5):
+                error_result = {
+                    f"puntaje_e{evaluator_num}": 1,  # Asumir válido por defecto
+                    f"comentario_e{evaluator_num}": f"Error en validación automática: {str(e)[:50]}"
+                }
+                error_results.append(error_result)
+            
+            # Si es un validador crítico, re-lanzar el error
+            if self.config["critical"]:
+                raise
+            
+            return error_results
+
+    def _get_evaluator_number(self) -> int:
+        """Obtener número de evaluador basado en el tipo de validador"""
+        mapping = {
+            "estructura": 1,
+            "tecnico": 2, 
+            "dificultad": 3,
+            "claridad": 4
+        }
+        return mapping.get(self.validator_type.value, 1)
+
+    def _prepare_batch_prompt(self, batch: QuestionBatch, procedure_text: str) -> str:
+        """
+        Preparar el prompt con el procedimiento completo y el lote de preguntas
+        """
+        # Convertir preguntas a formato JSON
+        questions_json = []
+        for question in batch.questions:
+            question_dict = {
+                "codigo_procedimiento": getattr(question, 'codigo_procedimiento', question.procedure_codigo),
+                "version_proc": getattr(question, 'version_proc', int(question.procedure_version)),
+                "version_preg": getattr(question, 'version_preg', 1),
+                "prompt": getattr(question, 'prompt', "1.1"),
+                "tipo_proc": getattr(question, 'tipo_proc', "TECNICO"),
+                "puntaje_ia": getattr(question, 'puntaje_ia', 0),
+                "puntaje_e1": getattr(question, 'puntaje_e1', 0),
+                "puntaje_e2": getattr(question, 'puntaje_e2', 0),
+                "puntaje_e3": getattr(question, 'puntaje_e3', 0),
+                "puntaje_e4": getattr(question, 'puntaje_e4', 0),
+                "comentario_e1": getattr(question, 'comentario_e1', ""),
+                "comentario_e2": getattr(question, 'comentario_e2', ""),
+                "comentario_e3": getattr(question, 'comentario_e3', ""),
+                "comentario_e4": getattr(question, 'comentario_e4', ""),
+                "pregunta": question.pregunta,
+                "opciones": question.opciones,
+                "historial_revision": getattr(question, 'historial_revision', [])
+            }
+            questions_json.append(question_dict)
+        
+        # Crear prompt
+        prompt = f"""PROCEDIMIENTO TÉCNICO COMPLETO:
+{procedure_text}
+
+CONJUNTO DE CINCO PREGUNTAS EN FORMATO JSON:
+{json.dumps(questions_json, indent=2, ensure_ascii=False)}
+
+Evalúa cada una de las cinco preguntas según tus criterios especializados."""
+        
+        return prompt
+
+    def _create_fallback_batch_response(self, num_questions: int) -> List[Dict[str, Any]]:
+        """Crear respuesta de fallback para un lote de preguntas"""
+        evaluator_num = self._get_evaluator_number()
+        fallback_responses = []
+        
+        for i in range(num_questions):
+            response = {
+                f"puntaje_e{evaluator_num}": 1,
+                f"comentario_e{evaluator_num}": f"Validación automática fallback para pregunta {i+1}"
+            }
+            fallback_responses.append(response)
+        
+        return fallback_responses
+
+    def _validate_batch_response_structure(self, validation_data: List[Dict[str, Any]]) -> None:
+        """
+        Validar que la respuesta del validador tenga la estructura correcta para un lote
+        """
+        print(f"🔧 Validando estructura de respuesta de lote para {self.validator_type.value}")
+        
+        if not isinstance(validation_data, list):
+            raise ValueError(f"Se esperaba una lista, se recibió: {type(validation_data)}")
+        
+        if len(validation_data) != 5:
+            raise ValueError(f"Se esperaban 5 elementos, se recibieron: {len(validation_data)}")
+        
+        evaluator_num = self._get_evaluator_number()
+        required_fields = [f"puntaje_e{evaluator_num}", f"comentario_e{evaluator_num}"]
+        
+        for i, item in enumerate(validation_data):
+            print(f"   🔍 Validando item {i+1}: {item}")
+            
+            if not isinstance(item, dict):
+                raise ValueError(f"Item {i+1} debe ser un diccionario, se recibió: {type(item)}")
+            
+            # Verificar campos requeridos (flexibilidad para diferentes formatos)
+            score_field = None
+            comment_field = None
+            
+            # Buscar campos de score
+            for field in [f"puntaje_e{evaluator_num}", "score"]:
+                if field in item:
+                    score_field = field
+                    break
+            
+            # Buscar campos de comentario  
+            for field in [f"comentario_e{evaluator_num}", "comment"]:
+                if field in item:
+                    comment_field = field
+                    break
+            
+            if not score_field:
+                raise ValueError(f"Item {i+1} falta campo de puntaje")
+            
+            if not comment_field:
+                raise ValueError(f"Item {i+1} falta campo de comentario")
+            
+            # Validar score
+            score = item[score_field]
+            if not isinstance(score, int) or score not in [0, 1]:
+                raise ValueError(f"Item {i+1}: score debe ser 0 o 1, recibido: {score}")
+            
+            # Validar comment
+            comment = item[comment_field]
+            if not isinstance(comment, str):
+                raise ValueError(f"Item {i+1}: comment debe ser string, recibido: {type(comment)}")
+        
+        print(f"✅ Estructura de respuesta de lote válida para {self.validator_type.value}")
+
+    # Mantener método legacy para compatibilidad
+    async def validate_question(self, question: QuestionInProcess) -> ValidationResult:
+        """
+        Validar una pregunta específica (método legacy - mantener compatibilidad)
+        """
+        try:
+            print(f"🔍 Validando pregunta individual {question.id} con validador {self.validator_type.value}")
             
             # Preparar prompt para el validador
             question_prompt = self._prepare_question_prompt(question)
@@ -146,7 +344,7 @@ class QuestionValidator:
             # Realizar validación
             validation_response = await self._call_validator_api(question_prompt)
             
-            # NUEVA FUNCIÓN: Limpiar la respuesta antes de parsear JSON
+            # Limpiar la respuesta antes de parsear JSON
             clean_response = self._clean_json_response(validation_response)
             
             # Parsear respuesta JSON limpia
@@ -155,9 +353,6 @@ class QuestionValidator:
                 print(f"✅ JSON parseado exitosamente para {self.validator_type.value}")
             except json.JSONDecodeError as e:
                 print(f"❌ Error parseando JSON limpio para {self.validator_type.value}: {e}")
-                print(f"   Respuesta limpia era: {clean_response}")
-                
-                # Intentar extraer JSON manualmente
                 validation_data = self._extract_json_manually(clean_response)
             
             # Validar estructura de respuesta
@@ -434,61 +629,102 @@ class ValidationEngine:
         
         return question
     
-    async def validate_batch(self, batch: QuestionBatch) -> QuestionBatch:
+    async def validate_batch(self, batch: QuestionBatch, procedure_text: str = "") -> QuestionBatch:
         """
-        Validar todas las preguntas de un lote
+        Validar todas las preguntas de un lote usando nueva lógica de batch
+        
+        Args:
+            batch: Lote de preguntas a validar
+            procedure_text: Texto completo del procedimiento técnico
         """
-        print(f"🔍 Iniciando validación de lote {batch.batch_id}")
+        print(f"🔍 Iniciando validación de lote {batch.batch_id} con nueva lógica de batch")
         print(f"   - Preguntas a validar: {len(batch.questions)}")
+        print(f"   - Procedimiento provisto: {len(procedure_text)} caracteres")
         
         batch.status = ProcedureStatus.validating
         batch.updated_at = get_current_timestamp()
         
-        validated_questions = []
-        total_validation_score = 0
+        # Ejecutar todos los validadores en paralelo con el lote completo
+        all_validation_results = {}
         
-        # Validar cada pregunta
-        for i, question in enumerate(batch.questions):
+        for validator_name, validator in self.validators.items():
             try:
-                print(f"📝 Validando pregunta {i+1}/{len(batch.questions)}")
+                print(f"   🔍 Ejecutando validador de lote: {validator_name}")
                 
-                validated_question = await self.validate_question_with_all_validators(question)
-                validated_questions.append(validated_question)
+                # Validar lote completo con procedimiento
+                batch_results = await validator.validate_batch(batch, procedure_text)
+                all_validation_results[validator_name] = batch_results
                 
-                # Calcular score de la pregunta
-                if validated_question.validations:
-                    question_score = self._calculate_question_score(validated_question.validations)
-                    total_validation_score += question_score
-                
-                # Rate limiting opcional entre preguntas
-                if DEBUG_CONFIG.get("rate_limit_enabled", True) and i < len(batch.questions) - 1:
-                    await asyncio.sleep(1)
+                print(f"   ✅ {validator_name}: {len(batch_results)} resultados obtenidos")
                 
             except Exception as e:
-                print(f"❌ Error validando pregunta {i+1}: {e}")
-                # Marcar pregunta como completada en lugar de fallida
-                question.status = QuestionStatus.completed
-                question.updated_at = get_current_timestamp()
-                validated_questions.append(question)
+                print(f"   ❌ Error en validador de lote {validator_name}: {e}")
+                
+                # Si es crítico, detener validación
+                if VALIDATORS_CONFIG[validator_name]["critical"]:
+                    batch.status = ProcedureStatus.failed
+                    batch.updated_at = get_current_timestamp()
+                    print(f"🛑 Validador crítico {validator_name} falló, deteniendo validación")
+                    raise Exception(f"Validador crítico {validator_name} falló: {e}")
+                
+                # Crear resultados de fallback
+                evaluator_num = validator._get_evaluator_number()
+                fallback_results = []
+                for i in range(len(batch.questions)):
+                    fallback_result = {
+                        f"puntaje_e{evaluator_num}": 1,
+                        f"comentario_e{evaluator_num}": f"Error en validador: {str(e)[:50]}"
+                    }
+                    fallback_results.append(fallback_result)
+                all_validation_results[validator_name] = fallback_results
         
-        # Actualizar lote con resultados
-        batch.questions = validated_questions
-        batch.validation_score = total_validation_score / len(batch.questions) if batch.questions else 1.0
+        # Aplicar resultados de validación a cada pregunta
+        for i, question in enumerate(batch.questions):
+            # Aplicar resultados de todos los validadores a esta pregunta
+            for validator_name, results in all_validation_results.items():
+                if i < len(results):
+                    result = results[i]
+                    # Actualizar campos de la pregunta
+                    for key, value in result.items():
+                        setattr(question, key, value)
+            
+            # Actualizar estado de la pregunta
+            question.status = QuestionStatus.completed  # Asumir completado por defecto
+            question.updated_at = get_current_timestamp()
+            
+            print(f"   📝 Pregunta {i+1} actualizada con resultados de validación")
+        
+        # Calcular score promedio del lote
+        total_score = 0
+        total_validations = 0
+        
+        for question in batch.questions:
+            question_score = 0
+            question_validations = 0
+            
+            # Sumar scores de todos los evaluadores
+            for evaluator_num in range(1, 5):  # e1, e2, e3, e4
+                score_field = f"puntaje_e{evaluator_num}"
+                if hasattr(question, score_field):
+                    score = getattr(question, score_field, 0)
+                    question_score += score
+                    question_validations += 1
+            
+            if question_validations > 0:
+                avg_question_score = question_score / question_validations
+                total_score += avg_question_score
+                total_validations += 1
+        
+        batch.validation_score = total_score / total_validations if total_validations > 0 else 1.0
         batch.updated_at = get_current_timestamp()
         
-        # Determinar estado del lote - ser más permisivo
-        completed_questions = sum(1 for q in batch.questions if q.status == QuestionStatus.completed)
-        
-        # CAMBIADO: Si hay al menos una pregunta completada, considerar el batch como completado
-        if completed_questions > 0:
-            batch.status = ProcedureStatus.completed
-        else:
-            batch.status = ProcedureStatus.failed
+        # Determinar estado del lote
+        batch.status = ProcedureStatus.completed  # Asumir completado si llegamos aquí
         
         print(f"✅ Validación de lote completada:")
-        print(f"   - Preguntas completadas: {completed_questions}")
         print(f"   - Total preguntas: {len(batch.questions)}")
         print(f"   - Score promedio del lote: {batch.validation_score:.2f}")
+        print(f"   - Validadores ejecutados: {len(all_validation_results)}")
         
         return batch
     

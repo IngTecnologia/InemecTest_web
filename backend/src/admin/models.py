@@ -126,12 +126,26 @@ class QuestionInProcess(BaseModel):
     pregunta: str = Field(..., description="Texto de la pregunta")
     opciones: List[str] = Field(..., description="Lista de 4 opciones")
     
-    # Metadatos de generación (compatibles con tu formato actual)
+    # Metadatos de generación (compatibles con nueva estructura)
+    codigo_procedimiento: str = Field(..., description="Código del procedimiento (nuevo formato)")
+    version_proc: int = Field(1, description="Versión del procedimiento")
     version_preg: int = Field(1, description="Versión de la pregunta")
     prompt: str = Field("1.1", description="Identificador del prompt usado")
+    tipo_proc: str = Field("TECNICO", description="Tipo de procedimiento: OPERATIVO, TECNICO o ADMINISTRATIVO")
     puntaje_ia: int = Field(0, description="Puntaje inicial de IA")
     
-    # Resultados de validación
+    # Campos de validación
+    puntaje_e1: int = Field(0, description="Puntaje validador 1")
+    puntaje_e2: int = Field(0, description="Puntaje validador 2") 
+    puntaje_e3: int = Field(0, description="Puntaje validador 3")
+    puntaje_e4: int = Field(0, description="Puntaje validador 4")
+    
+    comentario_e1: str = Field("", description="Comentario validador 1")
+    comentario_e2: str = Field("", description="Comentario validador 2")
+    comentario_e3: str = Field("", description="Comentario validador 3")
+    comentario_e4: str = Field("", description="Comentario validador 4")
+    
+    # Resultados de validación (mantener compatibilidad)
     validations: List[ValidationResult] = Field(default_factory=list, description="Resultados de validación")
     
     # Estado y timestamps
@@ -139,8 +153,8 @@ class QuestionInProcess(BaseModel):
     created_at: str = Field(..., description="Timestamp de creación")
     updated_at: str = Field(..., description="Timestamp de última actualización")
     
-    # Historial de revisiones
-    historial_revision: List[str] = Field(default_factory=list, description="Historial de cambios")
+    # Historial de revisiones (nueva estructura)
+    historial_revision: List[Dict[str, Any]] = Field(default_factory=list, description="Historial de cambios")
 
 class QuestionBatch(BaseModel):
     """Lote de 5 preguntas para un procedimiento"""

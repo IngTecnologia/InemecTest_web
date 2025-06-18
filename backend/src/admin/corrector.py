@@ -312,26 +312,29 @@ RESULTADOS DE VALIDACIÓN:
         
         return question
     
-    async def correct_batch(self, batch: QuestionBatch) -> QuestionBatch:
+    async def correct_batch(self, batch: QuestionBatch, procedure_text: str = "") -> QuestionBatch:
         """
-        Corregir todas las preguntas de un lote que necesiten corrección
+        Corregir un lote completo de preguntas usando nueva lógica de batch
         
         Args:
-            batch: Lote de preguntas a corregir
+            batch: Lote de preguntas con resultados de validación
+            procedure_text: Texto completo del procedimiento técnico
             
         Returns:
             Lote con preguntas corregidas
         """
-        print(f"🔧 Iniciando corrección de lote {batch.batch_id}")
+        print(f"🔧 Iniciando corrección de lote {batch.batch_id} con nueva lógica de batch")
+        print(f"   - Preguntas en lote: {len(batch.questions)}")
+        print(f"   - Procedimiento provisto: {len(procedure_text)} caracteres")
         
-        # Identificar preguntas que necesitan corrección
-        questions_to_correct = [
-            q for q in batch.questions 
-            if self._needs_correction(q)
-        ]
+        # Identificar preguntas que necesitan corrección basándose en puntajes_e
+        questions_to_correct = []
+        for question in batch.questions:
+            needs_correction = self._needs_correction_batch(question)
+            if needs_correction:
+                questions_to_correct.append(question)
         
         print(f"   - Preguntas que necesitan corrección: {len(questions_to_correct)}")
-        print(f"   - Total preguntas en lote: {len(batch.questions)}")
         
         if not questions_to_correct:
             print("   ✅ No hay preguntas que requieran corrección")
@@ -342,63 +345,191 @@ RESULTADOS DE VALIDACIÓN:
         batch.status = ProcedureStatus.correcting
         batch.updated_at = get_current_timestamp()
         
-        corrected_questions = []
-        correction_stats = {
-            "total_corrected": 0,
-            "successful_corrections": 0,
-            "failed_corrections": 0
-        }
+        # Preparar todas las preguntas con sus validaciones para envío en batch
+        batch_prompt = self._prepare_batch_correction_prompt(batch, procedure_text)
         
-        # Corregir cada pregunta que lo necesite
-        for i, question in enumerate(batch.questions):
-            if question in questions_to_correct:
-                try:
-                    print(f"   🔧 Corrigiendo pregunta {i+1}: {question.id}")
-                    
-                    corrected_question = await self.correct_question(question)
+        try:
+            # Realizar corrección de lote completo
+            correction_response = await self._call_corrector_api(batch_prompt)
+            
+            # Parsear respuesta - debe ser un array de 5 objetos corregidos
+            correction_data = json.loads(correction_response)
+            
+            # Validar estructura de respuesta del batch
+            self._validate_batch_correction_response(correction_data)
+            
+            # Aplicar correcciones a cada pregunta
+            corrected_questions = []
+            for i, question in enumerate(batch.questions):
+                if i < len(correction_data):
+                    corrected_question = self._apply_batch_corrections(question, correction_data[i])
                     corrected_questions.append(corrected_question)
-                    
-                    correction_stats["total_corrected"] += 1
-                    if corrected_question.status == QuestionStatus.completed:
-                        correction_stats["successful_corrections"] += 1
-                    else:
-                        correction_stats["failed_corrections"] += 1
-                    
-                    # Rate limiting entre correcciones
-                    if i < len(questions_to_correct) - 1:
-                        await asyncio.sleep(1)
-                        
-                except Exception as e:
-                    print(f"   ❌ Error corrigiendo pregunta {question.id}: {e}")
-                    question.status = QuestionStatus.failed
+                else:
+                    # Si no hay corrección para esta pregunta, mantenerla sin cambios
+                    question.status = QuestionStatus.completed
                     question.updated_at = get_current_timestamp()
                     corrected_questions.append(question)
-                    correction_stats["failed_corrections"] += 1
-            else:
-                # Pregunta no necesita corrección
-                corrected_questions.append(question)
-        
-        # Actualizar lote con preguntas corregidas
-        batch.questions = corrected_questions
-        batch.updated_at = get_current_timestamp()
-        
-        # Determinar estado final del lote
-        completed_questions = sum(1 for q in batch.questions if q.status == QuestionStatus.completed)
-        failed_questions = sum(1 for q in batch.questions if q.status == QuestionStatus.failed)
-        
-        if failed_questions == 0:
+            
+            batch.questions = corrected_questions
             batch.status = ProcedureStatus.completed
-        elif completed_questions > 0:
-            batch.status = ProcedureStatus.completed  # Éxito parcial
-        else:
-            batch.status = ProcedureStatus.failed
-        
-        print(f"✅ Corrección de lote completada:")
-        print(f"   - Preguntas corregidas exitosamente: {correction_stats['successful_corrections']}")
-        print(f"   - Preguntas que fallaron corrección: {correction_stats['failed_corrections']}")
-        print(f"   - Estado final del lote: {batch.status}")
+            batch.updated_at = get_current_timestamp()
+            
+            print(f"✅ Corrección de lote completada exitosamente")
+            
+        except Exception as e:
+            print(f"❌ Error en corrección de lote: {e}")
+            
+            # En caso de error, marcar todas las preguntas como completadas sin corrección
+            for question in batch.questions:
+                question.status = QuestionStatus.completed
+                question.updated_at = get_current_timestamp()
+            
+            batch.status = ProcedureStatus.completed  # Completar aunque haya errores de corrección
+            batch.updated_at = get_current_timestamp()
         
         return batch
+
+    def _needs_correction_batch(self, question: QuestionInProcess) -> bool:
+        """
+        Determinar si una pregunta necesita corrección basándose en puntajes_e
+        """
+        # Verificar si algún puntaje_e es 0
+        for evaluator_num in range(1, 5):  # e1, e2, e3, e4
+            score_field = f"puntaje_e{evaluator_num}"
+            if hasattr(question, score_field):
+                score = getattr(question, score_field, 1)
+                if score == 0:
+                    return True
+        
+        return False
+
+    def _prepare_batch_correction_prompt(self, batch: QuestionBatch, procedure_text: str) -> str:
+        """
+        Preparar prompt para corrección de lote completo
+        """
+        # Convertir preguntas a formato JSON con sus validaciones
+        questions_json = []
+        for question in batch.questions:
+            question_dict = {
+                "codigo_procedimiento": getattr(question, 'codigo_procedimiento', question.procedure_codigo),
+                "version_proc": getattr(question, 'version_proc', int(question.procedure_version)),
+                "version_preg": getattr(question, 'version_preg', 1),
+                "prompt": getattr(question, 'prompt', "1.1"),
+                "tipo_proc": getattr(question, 'tipo_proc', "TECNICO"),
+                "puntaje_ia": getattr(question, 'puntaje_ia', 0),
+                "puntaje_e1": getattr(question, 'puntaje_e1', 1),
+                "puntaje_e2": getattr(question, 'puntaje_e2', 1),
+                "puntaje_e3": getattr(question, 'puntaje_e3', 1),
+                "puntaje_e4": getattr(question, 'puntaje_e4', 1),
+                "comentario_e1": getattr(question, 'comentario_e1', ""),
+                "comentario_e2": getattr(question, 'comentario_e2', ""),
+                "comentario_e3": getattr(question, 'comentario_e3', ""),
+                "comentario_e4": getattr(question, 'comentario_e4', ""),
+                "pregunta": question.pregunta,
+                "opciones": question.opciones,
+                "historial_revision": getattr(question, 'historial_revision', [])
+            }
+            questions_json.append(question_dict)
+        
+        # Crear prompt
+        prompt = f"""PROCEDIMIENTO TÉCNICO COMPLETO:
+{procedure_text}
+
+CONJUNTO DE CINCO PREGUNTAS CON RESULTADOS DE VALIDACIÓN:
+{json.dumps(questions_json, indent=2, ensure_ascii=False)}
+
+Corrige cada pregunta individualmente según los puntajes y comentarios de validación proporcionados."""
+        
+        return prompt
+
+    def _validate_batch_correction_response(self, correction_data: Any) -> None:
+        """
+        Validar que la respuesta del corrector de lote tenga la estructura correcta
+        """
+        if not isinstance(correction_data, list):
+            raise ValueError(f"Se esperaba una lista, se recibió: {type(correction_data)}")
+        
+        if len(correction_data) != 5:
+            raise ValueError(f"Se esperaban 5 elementos, se recibieron: {len(correction_data)}")
+        
+        # Validar cada objeto de pregunta corregida
+        for i, item in enumerate(correction_data):
+            if not isinstance(item, dict):
+                raise ValueError(f"Item {i+1} debe ser un diccionario")
+            
+            # Verificar campos mínimos requeridos
+            required_fields = ["pregunta", "opciones"]
+            for field in required_fields:
+                if field not in item:
+                    raise ValueError(f"Item {i+1} falta campo: {field}")
+            
+            # Validar opciones
+            if not isinstance(item["opciones"], list) or len(item["opciones"]) != 4:
+                raise ValueError(f"Item {i+1}: opciones debe ser una lista de 4 elementos")
+
+    def _apply_batch_corrections(self, question: QuestionInProcess, correction_data: Dict[str, Any]) -> QuestionInProcess:
+        """
+        Aplicar correcciones de batch a una pregunta específica
+        """
+        # Verificar si la pregunta fue modificada
+        original_pregunta = question.pregunta
+        original_opciones = question.opciones.copy()
+        
+        new_pregunta = correction_data.get("pregunta", question.pregunta)
+        new_opciones = correction_data.get("opciones", question.opciones)
+        
+        # Verificar si hubo cambios
+        has_changes = (original_pregunta != new_pregunta) or (original_opciones != new_opciones)
+        
+        if has_changes:
+            # Agregar entrada al historial de revisión
+            revision_entry = {
+                "pregunta_original": original_pregunta,
+                "opciones_originales": original_opciones,
+                "motivo_revision": self._get_failed_comments(question),
+                "corregida_por": "IA"
+            }
+            
+            # Actualizar historial_revision
+            if not hasattr(question, 'historial_revision') or question.historial_revision is None:
+                question.historial_revision = []
+            
+            question.historial_revision.append(revision_entry)
+            
+            # Aplicar correcciones
+            question.pregunta = new_pregunta
+            question.opciones = new_opciones
+            
+            # Incrementar version_preg
+            current_version = getattr(question, 'version_preg', 1)
+            question.version_preg = current_version + 1
+            
+            print(f"   📝 Pregunta {question.id} corregida - versión {question.version_preg}")
+        
+        # Actualizar estado
+        question.status = QuestionStatus.completed
+        question.updated_at = get_current_timestamp()
+        
+        return question
+
+    def _get_failed_comments(self, question: QuestionInProcess) -> List[str]:
+        """
+        Obtener comentarios de validadores que fallaron (puntaje_e = 0)
+        """
+        failed_comments = []
+        
+        for evaluator_num in range(1, 5):
+            score_field = f"puntaje_e{evaluator_num}"
+            comment_field = f"comentario_e{evaluator_num}"
+            
+            if hasattr(question, score_field) and hasattr(question, comment_field):
+                score = getattr(question, score_field, 1)
+                comment = getattr(question, comment_field, "")
+                
+                if score == 0 and comment:
+                    failed_comments.append(comment)
+        
+        return failed_comments
     
     def get_correction_summary(self, batch: QuestionBatch) -> Dict[str, Any]:
         """

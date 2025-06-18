@@ -292,25 +292,29 @@ class WorkflowEngine:
             
             print(f"   ✅ Preguntas generadas: {len(question_batch.questions)}")
             
-            # Paso 3: Validar preguntas
+            # Leer texto completo del procedimiento para validadores y corrector
+            procedure_text = await self._extract_procedure_text(procedure_file)
+            print(f"   📄 Texto del procedimiento extraído: {len(procedure_text)} caracteres")
+            
+            # Paso 3: Validar preguntas con procedimiento completo
             task.update_progress(3, WorkflowState.VALIDATING, "Validando preguntas...")
             
             if not self.validation_engine:
                 raise Exception("ValidationEngine no disponible")
             
-            validated_batch = await self.validation_engine.validate_batch(question_batch)
+            validated_batch = await self.validation_engine.validate_batch(question_batch, procedure_text)
             task.question_batch = validated_batch
             
             validation_score = validated_batch.validation_score
             print(f"   ✅ Validación completada - Score: {validation_score:.2f}")
             
-            # Paso 4: Corregir si es necesario
+            # Paso 4: Corregir si es necesario con procedimiento completo
             task.update_progress(4, WorkflowState.CORRECTING, "Aplicando correcciones...")
             
             if not self.corrector:
                 raise Exception("Corrector no disponible")
             
-            corrected_batch = await self.corrector.correct_batch(validated_batch)
+            corrected_batch = await self.corrector.correct_batch(validated_batch, procedure_text)
             task.question_batch = corrected_batch
             
             print(f"   ✅ Corrección completada")
@@ -581,6 +585,42 @@ class WorkflowEngine:
         
         return stats
     
+    async def _extract_procedure_text(self, procedure_file: Path) -> str:
+        """
+        Extraer el texto completo del procedimiento desde el archivo .docx
+        """
+        try:
+            from docx import Document
+            
+            doc = Document(procedure_file)
+            
+            # Extraer todo el texto del documento
+            full_text = []
+            
+            # Agregar texto de los párrafos
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    full_text.append(paragraph.text.strip())
+            
+            # Agregar texto de las tablas
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            full_text.append(cell.text.strip())
+            
+            # Unir todo el texto
+            procedure_text = "\n".join(full_text)
+            
+            print(f"   📄 Texto extraído del procedimiento: {len(procedure_text)} caracteres")
+            
+            return procedure_text
+            
+        except Exception as e:
+            print(f"   ⚠️ Error extrayendo texto del procedimiento: {e}")
+            # Retornar texto vacío en caso de error
+            return ""
+
     def cancel_workflow(self) -> bool:
         """Cancelar workflow actual"""
         if self.state == WorkflowState.IDLE:
