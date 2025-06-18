@@ -171,7 +171,9 @@ class ProcedureScanner:
         🔧 VERSIÓN CORREGIDA: Usa SOLO filename, ignora encabezado
         """
         try:
+            print(f"📄 [DEBUG] Intentando abrir documento: {ruta_archivo}")
             doc = Document(ruta_archivo)
+            print(f"📄 [DEBUG] Documento abierto exitosamente")
             
             # ✅ USAR SOLO FILENAME - Más confiable
             codigo_raw, version_final = extract_procedure_code_and_version(ruta_archivo.name)
@@ -297,17 +299,24 @@ class ProcedureScanner:
         """
         Escanear directorio de procedimientos y detectar cambios
         """
-        print(f"🔍 Escaneando directorio: {self.procedures_source_dir}")
+        print(f"🔍 [DEBUG] Escaneando directorio: {self.procedures_source_dir}")
+        print(f"🔍 [DEBUG] Directorio existe: {self.procedures_source_dir.exists()}")
+        print(f"🔍 [DEBUG] Directorio absoluto: {self.procedures_source_dir.absolute()}")
         
         # Cargar tracking data
-        tracking_data = self.cargar_tracking_data()
+        try:
+            tracking_data = self.cargar_tracking_data()
+            print(f"🔍 [DEBUG] Tracking data cargado: {len(tracking_data.get('generated_questions', {}))} items")
+        except Exception as e:
+            print(f"❌ [DEBUG] Error cargando tracking: {e}")
+            tracking_data = {"generated_questions": {}, "last_scan": None, "scan_history": []}
         
         # Escanear archivos .docx
         archivos_encontrados = []
         procedimientos_escaneados = []
         
         if not self.procedures_source_dir.exists():
-            print(f"⚠️ Directorio no existe: {self.procedures_source_dir}")
+            print(f"❌ [DEBUG] Directorio no existe: {self.procedures_source_dir}")
             return {
                 "success": False,
                 "message": f"Directorio no existe: {self.procedures_source_dir}",
@@ -317,17 +326,42 @@ class ProcedureScanner:
                 "cola_generacion": []
             }
         
-        for archivo in self.procedures_source_dir.glob("*.docx"):
-            if archivo.name.startswith("~$"):  # Ignorar archivos temporales de Word
-                continue
-                
-            archivos_encontrados.append(archivo.name)
+        try:
+            print(f"🔍 [DEBUG] Buscando archivos *.docx en: {self.procedures_source_dir}")
+            docx_files = list(self.procedures_source_dir.glob("*.docx"))
+            print(f"🔍 [DEBUG] Archivos encontrados (antes de filtrar): {len(docx_files)}")
             
-            # Procesar documento
-            datos_procedimiento = self.procesar_documento(archivo)
-            procedimientos_escaneados.append(datos_procedimiento)
+            for archivo in docx_files:
+                if archivo.name.startswith("~$"):  # Ignorar archivos temporales de Word
+                    print(f"🔍 [DEBUG] Ignorando archivo temporal: {archivo.name}")
+                    continue
+                    
+                print(f"🔍 [DEBUG] Procesando archivo: {archivo.name}")
+                archivos_encontrados.append(archivo.name)
+                
+                # Procesar documento
+                try:
+                    datos_procedimiento = self.procesar_documento(archivo)
+                    procedimientos_escaneados.append(datos_procedimiento)
+                    print(f"🔍 [DEBUG] Archivo procesado exitosamente: {datos_procedimiento.get('codigo', 'UNKNOWN')}")
+                except Exception as proc_error:
+                    print(f"❌ [DEBUG] Error procesando {archivo.name}: {proc_error}")
+                    # Continuar con el siguiente archivo
+                    continue
         
-        print(f"📄 Archivos .docx encontrados: {len(archivos_encontrados)}")
+        except Exception as scan_error:
+            print(f"❌ [DEBUG] Error escaneando directorio: {scan_error}")
+            return {
+                "success": False,
+                "message": f"Error escaneando directorio: {scan_error}",
+                "archivos_encontrados": 0,
+                "procedimientos_nuevos": 0,
+                "procedimientos_actualizados": 0,
+                "cola_generacion": []
+            }
+        
+        print(f"📄 [DEBUG] Archivos .docx válidos encontrados: {len(archivos_encontrados)}")
+        print(f"📄 [DEBUG] Procedimientos procesados: {len(procedimientos_escaneados)}")
         
         # Analizar qué procedimientos necesitan preguntas
         cola_generacion = []

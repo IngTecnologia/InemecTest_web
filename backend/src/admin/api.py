@@ -22,11 +22,25 @@ admin_router = APIRouter(prefix="/admin", tags=["Admin - Generación de Pregunta
 scanner_instance = None
 workflow_engine_instance = None
 
+@admin_router.post("/reset-instances")
+async def reset_instances():
+    """Reiniciar instancias globales (para debug)"""
+    global scanner_instance, workflow_engine_instance
+    scanner_instance = None
+    workflow_engine_instance = None
+    return {"message": "Instancias reiniciadas"}
+
 def get_scanner() -> ProcedureScanner:
     """Obtener instancia del scanner (singleton)"""
     global scanner_instance
     if scanner_instance is None:
-        procedures_dir = os.getenv("PROCEDURES_SOURCE_DIR", "data/procedures_source")
+        # Usar ruta absoluta para Docker
+        if os.getenv("ENVIRONMENT") == "production":
+            procedures_dir = "/app/data/procedures_source"
+        else:
+            procedures_dir = os.getenv("PROCEDURES_SOURCE_DIR", "data/procedures_source")
+        
+        print(f"🔍 [DEBUG] Inicializando scanner con directorio: {procedures_dir}")
         scanner_instance = crear_scanner(procedures_dir)
     return scanner_instance
 
@@ -225,40 +239,101 @@ async def scan_procedures():
             detail=f"Error escaneando procedimientos: {str(e)}"
         )
 
+@admin_router.get("/queue/simple")
+async def get_generation_queue_simple():
+    """Obtener lista simple de archivos en el directorio (para debug)"""
+    try:
+        import os
+        if os.getenv("ENVIRONMENT") == "production":
+            procedures_dir = "/app/data/procedures_source"
+        else:
+            procedures_dir = "data/procedures_source"
+        
+        from pathlib import Path
+        dir_path = Path(procedures_dir)
+        
+        result = {
+            "directory": str(dir_path),
+            "exists": dir_path.exists(),
+            "absolute_path": str(dir_path.absolute()),
+            "files": [],
+            "environment": os.getenv("ENVIRONMENT", "development"),
+            "cwd": os.getcwd()
+        }
+        
+        if dir_path.exists():
+            files = list(dir_path.glob("*"))
+            result["files"] = [{"name": f.name, "is_file": f.is_file(), "size": f.stat().st_size if f.is_file() else 0} for f in files]
+        
+        return result
+        
+    except Exception as e:
+        return {"error": str(e), "traceback": str(e)}
+
 @admin_router.get("/queue", response_model=QueueResponse)
 async def get_generation_queue():
     """Obtener cola actual de generación"""
     try:
+        print(f"🔍 [DEBUG] Iniciando obtención de cola...")
+        
         scanner = get_scanner()
+        print(f"🔍 [DEBUG] Scanner obtenido. Directorio: {scanner.procedures_source_dir}")
+        print(f"🔍 [DEBUG] Directorio existe: {scanner.procedures_source_dir.exists()}")
+        
+        if scanner.procedures_source_dir.exists():
+            archivos = list(scanner.procedures_source_dir.glob("*.docx"))
+            print(f"🔍 [DEBUG] Archivos .docx encontrados: {len(archivos)}")
+            for archivo in archivos:
+                print(f"🔍 [DEBUG]   - {archivo.name}")
+        else:
+            print(f"❌ [DEBUG] Directorio no existe: {scanner.procedures_source_dir}")
+        
         cola_raw = scanner.get_generation_queue()
+        print(f"🔍 [DEBUG] Cola raw obtenida: {len(cola_raw)} items")
         
         # Convertir a modelos Pydantic
         queue_items = []
         status_summary = {}
         
-        for item in cola_raw:
-            queue_item = QueueItem(
-                codigo=item["codigo"],
-                nombre=item["nombre"],
-                version=item["version"],
-                archivo=item["archivo"],
-                estado=ProcedureStatus(item["estado"]),
-                tracking_key=item["tracking_key"],
-                datos_completos=ScannedProcedure(**item["datos_completos"]),
-                fecha_agregado=get_current_timestamp(),
-                prioridad=1
-            )
-            queue_items.append(queue_item)
-            
-            # Contar por estado
-            estado = item["estado"]
-            status_summary[estado] = status_summary.get(estado, 0) + 1
+        for i, item in enumerate(cola_raw):
+            try:
+                print(f"🔍 [DEBUG] Procesando item {i+1}: {item.get('codigo', 'UNKNOWN')}")
+                
+                queue_item = QueueItem(
+                    codigo=item["codigo"],
+                    nombre=item["nombre"],
+                    version=item["version"],
+                    archivo=item["archivo"],
+                    estado=ProcedureStatus(item["estado"]),
+                    tracking_key=item["tracking_key"],
+                    datos_completos=ScannedProcedure(**item["datos_completos"]),
+                    fecha_agregado=get_current_timestamp(),
+                    prioridad=1
+                )
+                queue_items.append(queue_item)
+                
+                # Contar por estado
+                estado = item["estado"]
+                status_summary[estado] = status_summary.get(estado, 0) + 1
+                
+            except Exception as item_error:
+                print(f"❌ [DEBUG] Error procesando item {i+1}: {item_error}")
+                print(f"❌ [DEBUG] Item data: {item}")
+                # Continuar con el siguiente item en lugar de fallar completamente
+                continue
         
         # Obtener fecha del último escaneo
-        tracking_data = scanner.cargar_tracking_data()
-        last_scan = None
-        if tracking_data.get("last_scan"):
-            last_scan = tracking_data["last_scan"].get("timestamp")
+        try:
+            tracking_data = scanner.cargar_tracking_data()
+            last_scan = None
+            if tracking_data.get("last_scan"):
+                last_scan = tracking_data["last_scan"].get("timestamp")
+            print(f"🔍 [DEBUG] Último escaneo: {last_scan}")
+        except Exception as tracking_error:
+            print(f"⚠️ [DEBUG] Error cargando tracking: {tracking_error}")
+            last_scan = None
+        
+        print(f"🔍 [DEBUG] Queue items procesados: {len(queue_items)}")
         
         return QueueResponse(
             queue_items=queue_items,
@@ -268,6 +343,9 @@ async def get_generation_queue():
         )
         
     except Exception as e:
+        print(f"❌ [DEBUG] Error completo en get_generation_queue: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error obteniendo cola de generación: {str(e)}"
