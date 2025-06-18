@@ -374,10 +374,10 @@ class ProcedureScanner:
         print(f"📄 [DEBUG] Archivos .docx válidos encontrados: {len(archivos_encontrados)}")
         print(f"📄 [DEBUG] Procedimientos procesados: {len(procedimientos_escaneados)}")
         
-        # Analizar qué procedimientos necesitan preguntas
+        # Analizar todos los procedimientos y determinar su estado
         cola_generacion = []
         procedimientos_nuevos = 0
-        procedimientos_actualizados = 0
+        procedimientos_ya_procesados = 0
         
         for proc_data in procedimientos_escaneados:
             codigo = proc_data["codigo"]
@@ -385,18 +385,28 @@ class ProcedureScanner:
             
             tracking_key = create_tracking_key(codigo, version)
 
-            # Verificar si ya se completó el procesamiento
-            if tracking_key in tracking_data.get("generated_questions", {}):
-                status = tracking_data["generated_questions"][tracking_key].get("status")
-                if status == "completed":
-                    # Ya tiene preguntas generadas, no agregar a cola
-                    continue
-
-            # Si llegamos aquí, necesita procesamiento
-            estado = "necesita_preguntas"
-            procedimientos_nuevos += 1  # Simplificamos: todo lo nuevo cuenta como nuevo
+            # Determinar estado del procedimiento
+            estado = "nuevo"  # Por defecto es nuevo
+            generated_questions_count = 0
             
-            # Añadir a cola de generación
+            if tracking_key in tracking_data.get("generated_questions", {}):
+                tracking_info = tracking_data["generated_questions"][tracking_key]
+                status = tracking_info.get("status")
+                if status == "completed":
+                    estado = "ya_procesado"
+                    generated_questions_count = tracking_info.get("preguntas_count", 0)
+                    procedimientos_ya_procesados += 1
+                else:
+                    # Estado intermedio (failed, processing, etc.)
+                    estado = "necesita_reproceso"
+                    procedimientos_nuevos += 1
+            else:
+                # No existe en tracking, es nuevo
+                procedimientos_nuevos += 1
+            
+            print(f"🔍 [DEBUG] Procedimiento {codigo} v{version}: estado={estado}, preguntas={generated_questions_count}")
+            
+            # Añadir TODOS los procedimientos a la cola (con su estado correspondiente)
             item_cola = {
                 "codigo": codigo,
                 "nombre": proc_data["nombre"],
@@ -404,7 +414,10 @@ class ProcedureScanner:
                 "archivo": proc_data["archivo"],
                 "estado": estado,
                 "tracking_key": tracking_key,
-                "datos_completos": proc_data
+                "datos_completos": proc_data,
+                "preguntas_generadas": generated_questions_count,
+                "puede_generar": estado in ["nuevo", "necesita_reproceso"],
+                "puede_regenerar": estado == "ya_procesado"
             }
             
             cola_generacion.append(item_cola)
@@ -432,10 +445,11 @@ class ProcedureScanner:
         
         resultado = {
             "success": True,
-            "message": f"Escaneo completado: {len(archivos_encontrados)} archivos procesados",
+            "message": f"Escaneo completado: {len(archivos_encontrados)} archivos encontrados",
             "archivos_encontrados": len(archivos_encontrados),
-            "procedimientos_pendientes": procedimientos_nuevos,  # ✅ Cambiar a procedimientos_nuevos
-            "procedimientos_actualizados": procedimientos_actualizados,  # ✅ Agregar campo
+            "procedimientos_nuevos": procedimientos_nuevos,
+            "procedimientos_ya_procesados": procedimientos_ya_procesados,
+            "total_procedimientos": len(cola_generacion),
             "cola_generacion": cola_generacion,
             "tracking_file": str(self.tracking_file),
             "timestamp": datetime.now().isoformat()
@@ -444,7 +458,7 @@ class ProcedureScanner:
         print(f"✅ Escaneo completado:")
         print(f"   - Archivos encontrados: {len(archivos_encontrados)}")
         print(f"   - Procedimientos nuevos: {procedimientos_nuevos}")
-        print(f"   - Procedimientos actualizados: {procedimientos_actualizados}")
+        print(f"   - Procedimientos ya procesados: {procedimientos_ya_procesados}")
         print(f"   - Total en cola: {len(cola_generacion)}")
         
         return resultado

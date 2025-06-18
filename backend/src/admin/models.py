@@ -13,10 +13,15 @@ from enum import Enum
 
 class ProcedureStatus(str, Enum):
     """Estados del procedimiento en el flujo de generación"""
+    # Estados principales para la cola
+    nuevo = "nuevo"  # Procedimiento sin preguntas generadas
+    ya_procesado = "ya_procesado"  # Procedimiento con preguntas generadas
+    necesita_reproceso = "necesita_reproceso"  # Procedimiento que falló y necesita reproceso
+    
+    # Estados heredados del sistema anterior (mantener compatibilidad)
     nuevo_procedimiento = "nuevo_procedimiento"
     nueva_version = "nueva_version"
-    ya_procesado = "ya_procesado"
-    necesita_preguntas = "necesita_preguntas"  # ✅ AGREGAR ESTE
+    necesita_preguntas = "necesita_preguntas"
     pending = "pending"
     generating = "generating"
     validating = "validating"
@@ -80,14 +85,20 @@ class QueueItem(BaseModel):
     datos_completos: ScannedProcedure = Field(..., description="Datos completos del procedimiento")
     fecha_agregado: Optional[str] = Field(None, description="Fecha de agregado a cola")
     prioridad: int = Field(1, description="Prioridad (1=alta, 5=baja)")
+    
+    # Nuevos campos para el manejo de estados
+    preguntas_generadas: int = Field(0, description="Número de preguntas ya generadas")
+    puede_generar: bool = Field(True, description="Si se puede generar preguntas (botón Generar)")
+    puede_regenerar: bool = Field(False, description="Si se puede regenerar preguntas (botón Regenerar)")
 
 class ScanResult(BaseModel):
     """Resultado de un escaneo de directorio"""
     success: bool = Field(..., description="Si el escaneo fue exitoso")
     message: str = Field(..., description="Mensaje del resultado")
     archivos_encontrados: int = Field(..., description="Número de archivos encontrados")
-    procedimientos_nuevos: int = Field(..., description="Procedimientos completamente nuevos")
-    procedimientos_actualizados: int = Field(..., description="Procedimientos con nueva versión")
+    procedimientos_nuevos: int = Field(..., description="Procedimientos sin preguntas generadas")
+    procedimientos_ya_procesados: int = Field(..., description="Procedimientos con preguntas generadas")
+    total_procedimientos: int = Field(..., description="Total de procedimientos en cola")
     cola_generacion: List[QueueItem] = Field(..., description="Items en cola de generación")
     tracking_file: str = Field(..., description="Ruta del archivo de tracking")
     timestamp: str = Field(..., description="Timestamp del escaneo")

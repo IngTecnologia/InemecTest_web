@@ -223,8 +223,9 @@ async def scan_procedures():
             success=resultado["success"],
             message=resultado["message"],
             archivos_encontrados=resultado["archivos_encontrados"],
-            procedimientos_nuevos=resultado.get("procedimientos_pendientes", 0),
-            procedimientos_actualizados=resultado.get("procedimientos_actualizados", 0),
+            procedimientos_nuevos=resultado.get("procedimientos_nuevos", 0),
+            procedimientos_ya_procesados=resultado.get("procedimientos_ya_procesados", 0),
+            total_procedimientos=resultado.get("total_procedimientos", len(queue_items)),
             cola_generacion=queue_items,
             tracking_file=str(scanner.tracking_file),
             timestamp=get_current_timestamp()
@@ -408,8 +409,12 @@ async def start_full_workflow(
         scanner = get_scanner()
         cola = scanner.get_generation_queue()
         
+        # Filtrar según si es regeneración o solo nuevos
         if procedure_codes:
             cola = [item for item in cola if item["codigo"] in procedure_codes]
+        else:
+            # Solo procesar procedimientos nuevos por defecto
+            cola = [item for item in cola if item["estado"] in ["nuevo", "necesita_reproceso"]]
         
         if not cola:
             return GenerationStartResponse(
@@ -451,6 +456,148 @@ async def start_full_workflow(
         raise HTTPException(
             status_code=500,
             detail=f"Error iniciando workflow: {str(e)}"
+        )
+
+@admin_router.post("/workflow/start-nuevos", response_model=GenerationStartResponse)
+async def start_workflow_nuevos_only(
+    background_tasks: BackgroundTasks
+):
+    """Iniciar workflow solo para procedimientos nuevos (Procesar Nuevos)"""
+    try:
+        workflow_engine = get_workflow_engine()
+        
+        # Verificar que el workflow no esté ocupado
+        if workflow_engine.state.value != "idle":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Workflow está ocupado. Estado actual: {workflow_engine.state.value}"
+            )
+        
+        # Obtener solo procedimientos nuevos
+        scanner = get_scanner()
+        cola = scanner.get_generation_queue()
+        cola_nuevos = [item for item in cola if item["estado"] in ["nuevo", "necesita_reproceso"]]
+        
+        if not cola_nuevos:
+            return GenerationStartResponse(
+                batch_id="no_new_items",
+                procedures_to_process=0,
+                estimated_time_minutes=0,
+                started_at=get_current_timestamp()
+            )
+        
+        # Extraer códigos de procedimientos nuevos
+        procedure_codes = [item["codigo"] for item in cola_nuevos]
+        
+        # Estimar tiempo (5 minutos por procedimiento como baseline)
+        estimated_time = len(cola_nuevos) * 5
+        
+        # Iniciar workflow en background
+        async def run_workflow():
+            try:
+                batch_id = await workflow_engine.start_full_workflow(
+                    procedure_codes=procedure_codes,
+                    force_regeneration=False
+                )
+                print(f"✅ Workflow para procedimientos nuevos completado - Batch ID: {batch_id}")
+            except Exception as e:
+                print(f"❌ Error en workflow background: {e}")
+        
+        background_tasks.add_task(run_workflow)
+        
+        # Generar batch_id temporal para tracking
+        temp_batch_id = f"nuevos_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        return GenerationStartResponse(
+            batch_id=temp_batch_id,
+            procedures_to_process=len(cola_nuevos),
+            estimated_time_minutes=estimated_time,
+            started_at=get_current_timestamp()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error iniciando workflow para nuevos: {str(e)}"
+        )
+
+@admin_router.post("/workflow/regenerate/{codigo}/{version}", response_model=GenerationStartResponse)
+async def regenerate_questions_for_procedure(
+    codigo: str,
+    version: str,
+    background_tasks: BackgroundTasks,
+    confirmed: bool = Query(False, description="Confirmación de regeneración")
+):
+    """Regenerar preguntas para un procedimiento específico (requiere confirmación)"""
+    try:
+        if not confirmed:
+            raise HTTPException(
+                status_code=400,
+                detail="La regeneración requiere confirmación. Use el parámetro 'confirmed=true'"
+            )
+        
+        workflow_engine = get_workflow_engine()
+        
+        # Verificar que el workflow no esté ocupado
+        if workflow_engine.state.value != "idle":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Workflow está ocupado. Estado actual: {workflow_engine.state.value}"
+            )
+        
+        # Verificar que el procedimiento existe y puede regenerarse
+        scanner = get_scanner()
+        cola = scanner.get_generation_queue()
+        
+        procedure_item = None
+        for item in cola:
+            if item["codigo"] == codigo and item["version"] == version:
+                procedure_item = item
+                break
+        
+        if not procedure_item:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Procedimiento {codigo} v{version} no encontrado"
+            )
+        
+        if not procedure_item.get("puede_regenerar", False):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Procedimiento {codigo} v{version} no puede regenerarse. Estado: {procedure_item.get('estado')}"
+            )
+        
+        # Iniciar workflow de regeneración en background
+        async def run_regeneration():
+            try:
+                batch_id = await workflow_engine.start_full_workflow(
+                    procedure_codes=[codigo],
+                    force_regeneration=True
+                )
+                print(f"✅ Regeneración completada para {codigo} v{version} - Batch ID: {batch_id}")
+            except Exception as e:
+                print(f"❌ Error en regeneración background: {e}")
+        
+        background_tasks.add_task(run_regeneration)
+        
+        # Generar batch_id temporal para tracking
+        temp_batch_id = f"regen_{codigo}_{version}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        return GenerationStartResponse(
+            batch_id=temp_batch_id,
+            procedures_to_process=1,
+            estimated_time_minutes=5,
+            started_at=get_current_timestamp()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error iniciando regeneración: {str(e)}"
         )
 
 @admin_router.get("/workflow/progress/{batch_id}")
