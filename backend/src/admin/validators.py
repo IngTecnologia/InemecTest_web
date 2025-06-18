@@ -646,16 +646,21 @@ class ValidationEngine:
         
         # Ejecutar todos los validadores en paralelo con el lote completo
         all_validation_results = {}
+        print(f"   🔍 Validadores disponibles: {list(self.validators.keys())}")
+        print(f"   📊 Modo mock activado: {DEBUG_CONFIG['mock_openai_calls']}")
         
         for validator_name, validator in self.validators.items():
             try:
                 print(f"   🔍 Ejecutando validador de lote: {validator_name}")
+                print(f"      - Evaluador número: {validator._get_evaluator_number()}")
+                print(f"      - Cliente OpenAI: {type(validator.client)}")
                 
                 # Validar lote completo con procedimiento
                 batch_results = await validator.validate_batch(batch, procedure_text)
                 all_validation_results[validator_name] = batch_results
                 
                 print(f"   ✅ {validator_name}: {len(batch_results)} resultados obtenidos")
+                print(f"      📊 Resultados: {batch_results}")
                 
             except Exception as e:
                 print(f"   ❌ Error en validador de lote {validator_name}: {e}")
@@ -677,22 +682,42 @@ class ValidationEngine:
                     }
                     fallback_results.append(fallback_result)
                 all_validation_results[validator_name] = fallback_results
+                print(f"   🔄 Creados resultados de fallback para {validator_name}: {fallback_results}")
         
         # Aplicar resultados de validación a cada pregunta
         for i, question in enumerate(batch.questions):
+            print(f"   📝 Aplicando validaciones a pregunta {i+1}: {question.id}")
+            
             # Aplicar resultados de todos los validadores a esta pregunta
             for validator_name, results in all_validation_results.items():
                 if i < len(results):
                     result = results[i]
+                    print(f"      🔍 {validator_name}: Aplicando {result}")
+                    
                     # Actualizar campos de la pregunta
                     for key, value in result.items():
+                        print(f"         ⚙️ Seteando {key} = {value}")
                         setattr(question, key, value)
+                        # Verificar que se seteó correctamente
+                        actual_value = getattr(question, key, "NOT_SET")
+                        print(f"         ✅ Verificación: {key} = {actual_value}")
+                else:
+                    print(f"      ⚠️ {validator_name}: No hay resultado para pregunta {i+1}")
+            
+            # Mostrar estado final de los puntajes
+            puntajes = {}
+            for evaluator_num in range(1, 5):
+                score_field = f"puntaje_e{evaluator_num}"
+                comment_field = f"comentario_e{evaluator_num}"
+                puntajes[score_field] = getattr(question, score_field, "NOT_FOUND")
+                puntajes[comment_field] = getattr(question, comment_field, "NOT_FOUND")
+            print(f"      📊 Estado final puntajes: {puntajes}")
             
             # Actualizar estado de la pregunta
             question.status = QuestionStatus.completed  # Asumir completado por defecto
             question.updated_at = get_current_timestamp()
             
-            print(f"   📝 Pregunta {i+1} actualizada con resultados de validación")
+            print(f"   ✅ Pregunta {i+1} actualizada con resultados de validación")
         
         # Calcular score promedio del lote
         total_score = 0
@@ -718,8 +743,22 @@ class ValidationEngine:
         batch.validation_score = total_score / total_validations if total_validations > 0 else 1.0
         batch.updated_at = get_current_timestamp()
         
+        print(f"   📊 Cálculo de score:")
+        print(f"      - Total score: {total_score}")
+        print(f"      - Total validaciones: {total_validations}")
+        print(f"      - Score final del lote: {batch.validation_score}")
+        
         # Determinar estado del lote
         batch.status = ProcedureStatus.completed  # Asumir completado si llegamos aquí
+        
+        # DEBUG: Mostrar estado final de todas las preguntas
+        print(f"📊 ESTADO FINAL DE VALIDACIÓN:")
+        for i, question in enumerate(batch.questions):
+            print(f"   Pregunta {i+1}:")
+            for evaluator_num in range(1, 5):
+                score = getattr(question, f"puntaje_e{evaluator_num}", "ERROR")
+                comment = getattr(question, f"comentario_e{evaluator_num}", "ERROR")
+                print(f"      e{evaluator_num}: score={score}, comment='{comment[:30]}...'")
         
         print(f"✅ Validación de lote completada:")
         print(f"   - Total preguntas: {len(batch.questions)}")
