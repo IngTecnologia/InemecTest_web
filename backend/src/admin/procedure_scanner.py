@@ -270,19 +270,29 @@ class ProcedureScanner:
         """
         Cargar datos de tracking de generación de preguntas
         """
-        if self.tracking_file.exists():
-            try:
-                with open(self.tracking_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"⚠️ Error cargando tracking data: {e}")
-        
         # Estructura por defecto
-        return {
+        default_structure = {
             "generated_questions": {},  # {codigo_version: {...}}
             "last_scan": None,
             "scan_history": []
         }
+        
+        if self.tracking_file.exists():
+            try:
+                with open(self.tracking_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # Asegurar que tiene todas las claves necesarias
+                for key, default_value in default_structure.items():
+                    if key not in data:
+                        data[key] = default_value
+                        print(f"⚠️ [DEBUG] Agregando clave faltante '{key}' al tracking data")
+                
+                return data
+            except Exception as e:
+                print(f"⚠️ Error cargando tracking data: {e}")
+        
+        return default_structure
     
     def guardar_tracking_data(self, tracking_data: Dict[str, Any]):
         """
@@ -307,6 +317,7 @@ class ProcedureScanner:
         try:
             tracking_data = self.cargar_tracking_data()
             print(f"🔍 [DEBUG] Tracking data cargado: {len(tracking_data.get('generated_questions', {}))} items")
+            print(f"🔍 [DEBUG] Tracking keys: {list(tracking_data.keys())}")
         except Exception as e:
             print(f"❌ [DEBUG] Error cargando tracking: {e}")
             tracking_data = {"generated_questions": {}, "last_scan": None, "scan_history": []}
@@ -406,6 +417,11 @@ class ProcedureScanner:
         }
         
         tracking_data["last_scan"] = scan_info
+        
+        # Asegurar que scan_history existe
+        if "scan_history" not in tracking_data:
+            tracking_data["scan_history"] = []
+        
         tracking_data["scan_history"].append(scan_info)
         
         # Mantener solo últimos 10 scans en historial
