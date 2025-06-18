@@ -705,20 +705,29 @@ class WorkflowEngine:
             new_questions = []
             for i, question in enumerate(batch.questions):
                 print(f"💾 [DEBUG] Procesando pregunta {i+1}: {question.pregunta[:50]}...")
+                # DEBUG: Mostrar puntajes antes de convertir
+                puntajes_debug = {
+                    "puntaje_e1": getattr(question, 'puntaje_e1', 'NOT_FOUND'),
+                    "puntaje_e2": getattr(question, 'puntaje_e2', 'NOT_FOUND'),
+                    "puntaje_e3": getattr(question, 'puntaje_e3', 'NOT_FOUND'),
+                    "puntaje_e4": getattr(question, 'puntaje_e4', 'NOT_FOUND')
+                }
+                print(f"💾 [DEBUG] Puntajes originales: {puntajes_debug}")
                 question_data = {
                     "codigo_procedimiento": batch.procedure_codigo,
                     "version_proc": int(batch.procedure_version),
                     "version_preg": getattr(question, 'version_preg', 1),
                     "prompt": getattr(question, 'prompt', "1.1"),
                     "puntaje_ia": getattr(question, 'puntaje_ia', 0),
-                    "puntaje_e1": 0,
-                    "puntaje_e2": 0,
-                    "puntaje_e3": 0,
-                    "puntaje_e4": 0,
-                    "comentario_e1": "",
-                    "comentario_e2": "",
-                    "comentario_e3": "",
-                    "comentario_e4": "",
+                    # CORREGIDO: Usar los puntajes reales de validación
+                    "puntaje_e1": getattr(question, 'puntaje_e1', 0),
+                    "puntaje_e2": getattr(question, 'puntaje_e2', 0),
+                    "puntaje_e3": getattr(question, 'puntaje_e3', 0),
+                    "puntaje_e4": getattr(question, 'puntaje_e4', 0),
+                    "comentario_e1": getattr(question, 'comentario_e1', ""),
+                    "comentario_e2": getattr(question, 'comentario_e2', ""),
+                    "comentario_e3": getattr(question, 'comentario_e3', ""),
+                    "comentario_e4": getattr(question, 'comentario_e4', ""),
                     "pregunta": question.pregunta,
                     "opciones": question.opciones,
                     "historial_revision": question.historial_revision,
@@ -729,6 +738,15 @@ class WorkflowEngine:
                     "created_at": question.created_at,
                     "updated_at": question.updated_at
                 }
+                # DEBUG: Mostrar puntajes finales
+                puntajes_finales = {
+                    "puntaje_e1": question_data["puntaje_e1"],
+                    "puntaje_e2": question_data["puntaje_e2"],
+                    "puntaje_e3": question_data["puntaje_e3"],
+                    "puntaje_e4": question_data["puntaje_e4"]
+                }
+                print(f"💾 [DEBUG] Puntajes guardados: {puntajes_finales}")
+                
                 new_questions.append(question_data)
             
             print(f"💾 [DEBUG] Preguntas convertidas: {len(new_questions)}")
