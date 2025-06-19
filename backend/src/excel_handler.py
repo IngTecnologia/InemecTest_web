@@ -61,11 +61,26 @@ class ExcelHandler:
                     continue
                 
                 try:
+                    # Obtener campos básicos
                     procedure = {
                         "codigo": str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["codigo"])]).strip(),
                         "nombre": str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["nombre"])]).strip(),
                         "alcance": str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["alcance"])]).strip(),
                         "objetivo": str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["objetivo"])]).strip()
+                    }
+                    
+                    # Obtener campos adicionales para filtros
+                    disciplina_raw = str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["disciplina"])]).strip()
+                    campo_raw = str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["campo"])]).strip()
+                    
+                    # Limpiar valores NaN y vacíos
+                    disciplina = disciplina_raw if disciplina_raw != "nan" and disciplina_raw != "" else None
+                    campo = campo_raw if campo_raw != "nan" and campo_raw != "" else None
+                    
+                    # Agregar datos completos para filtros del frontend
+                    procedure["datos_completos"] = {
+                        "disciplina": disciplina,
+                        "campo": campo
                     }
                     
                     # Validar que el código no esté vacío
