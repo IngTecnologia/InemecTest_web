@@ -474,7 +474,7 @@ const ProcedureQueue = () => {
                   <td className="actions-cell">
                     <button
                       className={`action-btn-small ${item.estado === 'ya_procesado' ? 'disabled-processed' : 'primary'}`}
-                      onClick={() => {
+                      onClick={async () => {
                         if (item.estado === 'ya_procesado') {
                           addNotification('❌ Este procedimiento ya fue procesado', 'error')
                           return
