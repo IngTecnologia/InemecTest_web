@@ -11,6 +11,12 @@ const EvaluationForm = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   
+  // Nuevos estados para filtros
+  const [selectedDisciplina, setSelectedDisciplina] = useState('')
+  const [selectedCampoOperativo, setSelectedCampoOperativo] = useState('')
+  const [availableDisciplinas, setAvailableDisciplinas] = useState([])
+  const [availableCamposOperativos, setAvailableCamposOperativos] = useState([])
+  
   // NUEVO: Mapeo de opciones randomizadas a originales
   const [optionMappings, setOptionMappings] = useState({})
   
@@ -51,18 +57,56 @@ const EvaluationForm = () => {
     loadProcedures()
   }, [])
 
-  // Filtrar procedimientos basado en búsqueda
+  // Extraer disciplinas y campos únicos cuando cambian los procedimientos
   useEffect(() => {
+    if (procedures.length > 0) {
+      // Extraer disciplinas únicas
+      const disciplinas = [...new Set(
+        procedures
+          .filter(proc => proc.datos_completos?.disciplina)
+          .map(proc => proc.datos_completos.disciplina)
+      )].sort()
+      
+      // Extraer campos operativos únicos
+      const campos = [...new Set(
+        procedures
+          .filter(proc => proc.datos_completos?.campo)
+          .map(proc => proc.datos_completos.campo)
+      )].sort()
+      
+      setAvailableDisciplinas(disciplinas)
+      setAvailableCamposOperativos(campos)
+    }
+  }, [procedures])
+
+  // Filtrar procedimientos basado en búsqueda y filtros
+  useEffect(() => {
+    let filtered = procedures
+    
+    // Filtrar por disciplina si está seleccionada
+    if (selectedDisciplina) {
+      filtered = filtered.filter(proc => 
+        proc.datos_completos?.disciplina === selectedDisciplina
+      )
+    }
+    
+    // Filtrar por campo operativo si está seleccionado
+    if (selectedCampoOperativo) {
+      filtered = filtered.filter(proc => 
+        proc.datos_completos?.campo === selectedCampoOperativo
+      )
+    }
+    
+    // Filtrar por término de búsqueda si existe
     if (searchTerm) {
-      const filtered = procedures.filter(proc => 
+      filtered = filtered.filter(proc => 
         proc.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         proc.nombre.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      setFilteredProcedures(filtered)
-    } else {
-      setFilteredProcedures(procedures)
     }
-  }, [searchTerm, procedures])
+    
+    setFilteredProcedures(filtered)
+  }, [searchTerm, procedures, selectedDisciplina, selectedCampoOperativo])
 
   const loadProcedures = async () => {
     try {
@@ -304,6 +348,33 @@ const EvaluationForm = () => {
         </select>
       </div>
 
+      {/* Filtros para selección de procedimiento */}
+      <div className="form-group">
+        <label>Filtrar por Disciplina (opcional):</label>
+        <select 
+          value={selectedDisciplina} 
+          onChange={(e) => setSelectedDisciplina(e.target.value)}
+        >
+          <option value="">Todas las disciplinas</option>
+          {availableDisciplinas.map(disciplina => (
+            <option key={disciplina} value={disciplina}>{disciplina}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>Filtrar por Campo Operativo (opcional):</label>
+        <select 
+          value={selectedCampoOperativo} 
+          onChange={(e) => setSelectedCampoOperativo(e.target.value)}
+        >
+          <option value="">Todos los campos operativos</option>
+          {availableCamposOperativos.map(campo => (
+            <option key={campo} value={campo}>{campo}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="form-group">
         <label>Procedimiento:</label>
         <div style={{position: 'relative'}}>
@@ -326,7 +397,7 @@ const EvaluationForm = () => {
               top: '100%',
               left: 0,
               right: 0,
-              maxHeight: '200px',
+              maxHeight: '250px',
               overflowY: 'auto',
               background: 'white',
               border: '1px solid #ddd',
@@ -340,7 +411,7 @@ const EvaluationForm = () => {
                   key={proc.codigo}
                   onClick={() => handleProcedureSelect(proc)}
                   style={{
-                    padding: '0.5rem',
+                    padding: '0.75rem',
                     cursor: 'pointer',
                     borderBottom: '1px solid #eee',
                     ':hover': {
@@ -350,12 +421,126 @@ const EvaluationForm = () => {
                   onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
                   onMouseLeave={(e) => e.target.style.background = 'white'}
                 >
-                  <strong>{proc.codigo}</strong> - {proc.nombre}
+                  <div><strong>{proc.codigo}</strong> - {proc.nombre}</div>
+                  {proc.datos_completos?.disciplina && (
+                    <div style={{fontSize: '0.8rem', color: '#666', marginTop: '0.25rem'}}>
+                      Disciplina: {proc.datos_completos.disciplina}
+                      {proc.datos_completos?.campo && ` | Campo: ${proc.datos_completos.campo}`}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
+          
+          {showDropdown && filteredProcedures.length === 0 && searchTerm && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              marginTop: '2px',
+              padding: '0.75rem',
+              color: '#666',
+              textAlign: 'center'
+            }}>
+              No se encontraron procedimientos que coincidan con los filtros aplicados.
+            </div>
+          )}
         </div>
+        
+        {/* Indicadores de filtros activos */}
+        {(selectedDisciplina || selectedCampoOperativo) && (
+          <div style={{
+            marginTop: '0.5rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            alignItems: 'center'
+          }}>
+            <span style={{fontSize: '0.8rem', color: '#666'}}>Filtros activos:</span>
+            {selectedDisciplina && (
+              <div style={{
+                background: '#667eea',
+                color: 'white',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '12px',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}>
+                Disciplina: {selectedDisciplina}
+                <button
+                  onClick={() => setSelectedDisciplina('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    padding: '0',
+                    marginLeft: '0.25rem'
+                  }}
+                  title="Limpiar filtro de disciplina"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {selectedCampoOperativo && (
+              <div style={{
+                background: '#f59e0b',
+                color: 'white',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '12px',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}>
+                Campo: {selectedCampoOperativo}
+                <button
+                  onClick={() => setSelectedCampoOperativo('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    padding: '0',
+                    marginLeft: '0.25rem'
+                  }}
+                  title="Limpiar filtro de campo"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setSelectedDisciplina('')
+                setSelectedCampoOperativo('')
+              }}
+              style={{
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                cursor: 'pointer'
+              }}
+              title="Limpiar todos los filtros"
+            >
+              Limpiar todos
+            </button>
+          </div>
+        )}
+        
         {loading && <p style={{color: '#667eea', fontSize: '0.9rem'}}>Cargando...</p>}
       </div>
 
