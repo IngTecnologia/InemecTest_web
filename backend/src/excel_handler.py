@@ -70,12 +70,33 @@ class ExcelHandler:
                     }
                     
                     # Obtener campos adicionales para filtros
-                    disciplina_raw = str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["disciplina"])]).strip()
-                    campo_raw = str(row.iloc[self._get_col_index(PROCEDURES_COLUMNS["campo"])]).strip()
+                    disciplina_col_index = self._get_col_index(PROCEDURES_COLUMNS["disciplina"])  # G = 6
+                    campo_col_index = self._get_col_index(PROCEDURES_COLUMNS["campo"])  # L = 11
+                    
+                    print(f"🔍 DEBUG - Índices: disciplina={disciplina_col_index}, campo={campo_col_index}")
+                    print(f"🔍 DEBUG - Total columnas en fila: {len(row)}")
+                    
+                    # Verificar que las columnas existan en la fila
+                    disciplina_raw = ""
+                    campo_raw = ""
+                    
+                    if disciplina_col_index < len(row):
+                        disciplina_raw = str(row.iloc[disciplina_col_index]).strip()
+                        print(f"🔍 DEBUG - Disciplina raw: '{disciplina_raw}'")
+                    else:
+                        print(f"⚠️ WARNING - Columna disciplina ({disciplina_col_index}) no existe en fila con {len(row)} columnas")
+                    
+                    if campo_col_index < len(row):
+                        campo_raw = str(row.iloc[campo_col_index]).strip()
+                        print(f"🔍 DEBUG - Campo raw: '{campo_raw}'")
+                    else:
+                        print(f"⚠️ WARNING - Columna campo ({campo_col_index}) no existe en fila con {len(row)} columnas")
                     
                     # Limpiar valores NaN y vacíos
                     disciplina = disciplina_raw if disciplina_raw != "nan" and disciplina_raw != "" else None
                     campo = campo_raw if campo_raw != "nan" and campo_raw != "" else None
+                    
+                    print(f"🔍 DEBUG - Disciplina final: '{disciplina}', Campo final: '{campo}'")
                     
                     # Agregar datos completos para filtros del frontend
                     procedure["datos_completos"] = {
