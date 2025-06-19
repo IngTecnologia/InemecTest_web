@@ -35,8 +35,17 @@ const ProcedureQueue = () => {
       )
     }
 
-    // Ordenar
+    // Ordenar: primero por estado (procesados al final), luego por el criterio seleccionado
     items.sort((a, b) => {
+      // Primero ordenar por estado: ya_procesado siempre al final
+      const aProcessed = a.estado === 'ya_procesado' ? 1 : 0
+      const bProcessed = b.estado === 'ya_procesado' ? 1 : 0
+      
+      if (aProcessed !== bProcessed) {
+        return aProcessed - bProcessed
+      }
+      
+      // Luego ordenar por el criterio seleccionado
       let aVal = a[sortBy]
       let bVal = b[sortBy]
       
@@ -363,7 +372,7 @@ const ProcedureQueue = () => {
               {filteredAndSortedItems.map(item => (
                 <tr 
                   key={`${item.codigo}-${item.version}`}
-                  className={selectedItems.has(item.codigo) ? 'selected' : ''}
+                  className={`${selectedItems.has(item.codigo) ? 'selected' : ''} ${item.estado === 'ya_procesado' ? 'processed' : ''}`}
                 >
                   <td>
                     <input
@@ -396,7 +405,7 @@ const ProcedureQueue = () => {
                   </td>
                   <td className="actions-cell">
                     <button
-                      className="action-btn-small primary"
+                      className={`action-btn-small ${item.estado === 'ya_procesado' ? 'disabled-processed' : 'primary'}`}
                       onClick={() => {
                         if (item.estado === 'ya_procesado') {
                           addNotification('❌ Este procedimiento ya fue procesado', 'error')
@@ -408,7 +417,7 @@ const ProcedureQueue = () => {
                       disabled={workflowLoading || item.estado === 'ya_procesado'}
                       title={item.estado === 'ya_procesado' ? 'Procedimiento ya procesado' : 'Procesar solo este procedimiento'}
                     >
-                      ▶️
+                      {item.estado === 'ya_procesado' ? '✓' : '▶️'}
                     </button>
                     <button
                       className="action-btn-small danger"
@@ -692,6 +701,15 @@ const ProcedureQueue = () => {
           background: #ede9fe;
         }
 
+        .queue-table tr.processed {
+          background: #f9fafb;
+          opacity: 0.7;
+        }
+
+        .queue-table tr.processed.selected {
+          background: #f3f4f6;
+        }
+
         .codigo-cell code {
           background: #f3f4f6;
           padding: 0.25rem 0.5rem;
@@ -761,6 +779,17 @@ const ProcedureQueue = () => {
         .action-btn-small.primary {
           background: #10b981;
           color: white;
+        }
+
+        .action-btn-small.disabled-processed {
+          background: #e5e7eb;
+          color: #9ca3af;
+          cursor: not-allowed;
+        }
+
+        .action-btn-small.disabled-processed:hover {
+          transform: none;
+          background: #e5e7eb;
         }
 
         .action-btn-small.danger {
