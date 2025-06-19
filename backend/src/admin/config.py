@@ -690,10 +690,10 @@ def extract_procedure_code_and_version(filename: str) -> tuple[str, str]:
 
 # Configuración para desarrollo/testing
 DEBUG_CONFIG = {
-    "enabled": True,
+    "enabled": False,
     "mock_openai_calls": False,  # Para testing sin usar API real
-    "verbose_logging": True,
-    "save_all_intermediate_results": True,
+    "verbose_logging": False,
+    "save_all_intermediate_results": False,
     "test_with_single_question": False  # Generar solo 1 pregunta para testing rápido
 }
 

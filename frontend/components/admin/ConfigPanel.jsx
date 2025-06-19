@@ -158,18 +158,15 @@ const ConfigPanel = () => {
               <input
                 type="checkbox"
                 id="debug-toggle"
-                checked={localSettings.debugMode}
-                onChange={handleDebugToggle}
-                disabled={saving}
+                checked={false}
+                onChange={() => {}}
+                disabled={true}
               />
               <label htmlFor="debug-toggle"></label>
             </div>
           </div>
           <p>
-            {localSettings.debugMode 
-              ? 'Modo debug activo - Usando respuestas mock para testing'
-              : 'Modo producción - Usando API real de OpenAI'
-            }
+            Modo debug deshabilitado por seguridad
           </p>
         </div>
 

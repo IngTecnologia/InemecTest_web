@@ -248,11 +248,12 @@ const ProcedureQueue = () => {
         </div>
       )}
 
-      {/* Debug - mostrar siempre el estado */}
-      {adminStatus && (
+      {/* Debug temporal - activar solo para diagnosticar */}
+      {true && adminStatus && (
         <div style={{ background: '#f0f0f0', padding: '0.5rem', marginBottom: '1rem', fontSize: '0.8rem' }}>
-          <strong>Debug - Estado actual:</strong> {JSON.stringify(adminStatus.workflow_state)} | 
-          Loading: {workflowLoading ? 'true' : 'false'}
+          <strong>Debug - Estado actual:</strong> {JSON.stringify(adminStatus)} <br/>
+          <strong>Workflow State:</strong> {JSON.stringify(adminStatus.workflow_state)} | 
+          <strong>Loading:</strong> {workflowLoading ? 'true' : 'false'}
         </div>
       )}
 
