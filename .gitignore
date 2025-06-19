@@ -1,0 +1,136 @@
+# =============================================================================
+# InemecTest - Archivos generados y datos sensibles
+# =============================================================================
+
+# Archivos JSON generados por el sistema
+generated_questions.json
+generation_queue.json
+question_generation_tracking.json
+
+# Archivos Excel con datos de procedimientos y resultados
+resultados_evaluaciones.xlsx
+procedimientos_y_preguntas.xlsx
+
+# Directorio con archivos fuente de procedimientos (documentos .docx)
+procedures_source/
+**/procedures_source/
+
+# =============================================================================
+# Archivos temporales y logs del sistema admin
+# =============================================================================
+
+# Directorio temporal del módulo admin
+backend/data/admin_temp/
+**/admin_temp/
+
+# Logs del sistema
+logs/
+*.log
+
+# =============================================================================
+# Configuración y claves API
+# =============================================================================
+
+# Variables de entorno con claves sensibles
+.env
+.env.local
+.env.production
+.env.development
+
+# =============================================================================
+# Dependencies y build artifacts
+# =============================================================================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# =============================================================================
+# IDEs y editores
+# =============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# =============================================================================
+# Sistema operativo
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# =============================================================================
+# Docker y contenedores
+# =============================================================================
+
+# Volumes de Docker con datos persistentes
+docker-compose.override.yml
+
+# =============================================================================
+# Archivos de backup y temporales
+# =============================================================================
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# Temporales
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# =============================================================================
+# Build y distribución
+# =============================================================================
+
+# Frontend build
+frontend/dist/
+frontend/build/
+
+# Coverage reports
+coverage/
+*.cover
+.coverage
+.nyc_output
+
+# =============================================================================
+# Archivos específicos del proyecto
+# =============================================================================
+
+# Cualquier archivo de test con datos reales
+test_procedure_*.docx
+sample_*.docx
