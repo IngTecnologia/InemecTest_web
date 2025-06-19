@@ -248,8 +248,16 @@ const ProcedureQueue = () => {
         </div>
       )}
 
+      {/* Debug - mostrar siempre el estado */}
+      {adminStatus && (
+        <div style={{ background: '#f0f0f0', padding: '0.5rem', marginBottom: '1rem', fontSize: '0.8rem' }}>
+          <strong>Debug - Estado actual:</strong> {JSON.stringify(adminStatus.workflow_state)} | 
+          Loading: {workflowLoading ? 'true' : 'false'}
+        </div>
+      )}
+
       {/* Workflow Status Banner */}
-      {adminStatus && ['scanning', 'generating', 'validating', 'correcting'].includes(adminStatus.workflow_state) && (
+      {(adminStatus && ['scanning', 'generating', 'validating', 'correcting'].includes(adminStatus.workflow_state)) || workflowLoading ? (
         <div className="workflow-banner">
           <div className="workflow-banner-content">
             <div className="workflow-spinner"></div>
@@ -258,12 +266,14 @@ const ProcedureQueue = () => {
                 🚀 Workflow en Progreso
               </div>
               <div className="workflow-status">
-                Estado: {adminStatus.workflow_state === 'scanning' ? 'Escaneando archivos' :
-                        adminStatus.workflow_state === 'generating' ? 'Generando preguntas' :
-                        adminStatus.workflow_state === 'validating' ? 'Validando resultados' :
-                        adminStatus.workflow_state === 'correcting' ? 'Corrigiendo errores' : adminStatus.workflow_state}
+                Estado: {workflowLoading ? 'Iniciando...' :
+                        adminStatus?.workflow_state === 'scanning' ? 'Escaneando archivos' :
+                        adminStatus?.workflow_state === 'generating' ? 'Generando preguntas' :
+                        adminStatus?.workflow_state === 'validating' ? 'Validando resultados' :
+                        adminStatus?.workflow_state === 'correcting' ? 'Corrigiendo errores' : 
+                        adminStatus?.workflow_state || 'Procesando...'}
               </div>
-              {adminStatus.current_batch_progress && (
+              {adminStatus?.current_batch_progress && (
                 <div className="workflow-progress">
                   Progreso: {adminStatus.current_batch_progress.completed}/{adminStatus.current_batch_progress.total} procedimientos
                 </div>
@@ -271,7 +281,7 @@ const ProcedureQueue = () => {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Header */}
       <div className="queue-header">
