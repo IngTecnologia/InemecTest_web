@@ -54,8 +54,8 @@ class ExcelSyncManager:
             # 3. Agregar preguntas a hoja de Preguntas
             questions_added = await self._sync_questions_to_excel(batch)
             
-            # 4. Guardar backup del archivo JSON temporal también
-            await self._save_generated_questions_json(batch)
+            # 4. NOTA: El guardado JSON se hace en workflow_engine._save_to_final_files()
+            # No duplicar aquí para evitar entradas duplicadas
             
             result = {
                 "success": True,
