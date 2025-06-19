@@ -125,6 +125,18 @@ const ProcedureQueue = () => {
   const handleStartSelected = async () => {
     if (selectedItems.size === 0) return
 
+    // Verificar si algún procedimiento seleccionado ya fue procesado
+    const selectedProcedures = filteredAndSortedItems.filter(item => selectedItems.has(item.codigo))
+    const alreadyProcessed = selectedProcedures.filter(item => item.estado === 'ya_procesado')
+    
+    if (alreadyProcessed.length > 0) {
+      addNotification(
+        `❌ No se puede procesar: ${alreadyProcessed.length} procedimiento(s) ya fueron procesados`,
+        'error'
+      )
+      return
+    }
+
     try {
       const selectedCodes = Array.from(selectedItems)
       await startWorkflow({ procedureCodes: selectedCodes })
@@ -135,9 +147,18 @@ const ProcedureQueue = () => {
   }
 
   const handleStartAll = async () => {
+    // Solo procesar procedimientos disponibles (no ya procesados)
+    const availableProcedures = filteredAndSortedItems.filter(item => item.estado !== 'ya_procesado')
+    
+    if (availableProcedures.length === 0) {
+      addNotification('❌ No hay procedimientos disponibles para procesar', 'error')
+      return
+    }
+
     try {
-      await startWorkflow()
-      addNotification('🚀 Workflow iniciado para todos los procedimientos', 'success')
+      const availableCodes = availableProcedures.map(item => item.codigo)
+      await startWorkflow({ procedureCodes: availableCodes })
+      addNotification(`🚀 Workflow iniciado para ${availableProcedures.length} procedimientos disponibles`, 'success')
     } catch (error) {
       addNotification(`❌ Error iniciando workflow: ${error.message}`, 'error')
     }
@@ -283,16 +304,23 @@ const ProcedureQueue = () => {
           <button 
             className="action-btn primary"
             onClick={handleStartSelected}
-            disabled={selectedItems.size === 0 || workflowLoading}
+            disabled={
+              selectedItems.size === 0 || 
+              workflowLoading || 
+              filteredAndSortedItems.filter(item => selectedItems.has(item.codigo) && item.estado === 'ya_procesado').length > 0
+            }
           >
             🚀 Procesar Seleccionados ({selectedItems.size})
           </button>
           <button 
             className="action-btn primary"
             onClick={handleStartAll}
-            disabled={filteredAndSortedItems.length === 0 || workflowLoading}
+            disabled={
+              filteredAndSortedItems.filter(item => item.estado !== 'ya_procesado').length === 0 || 
+              workflowLoading
+            }
           >
-            🚀 Procesar Todos ({filteredAndSortedItems.length})
+            🚀 Procesar Disponibles ({filteredAndSortedItems.filter(item => item.estado !== 'ya_procesado').length})
           </button>
         </div>
       </div>
@@ -369,9 +397,16 @@ const ProcedureQueue = () => {
                   <td className="actions-cell">
                     <button
                       className="action-btn-small primary"
-                      onClick={() => handleStartSelected([item.codigo])}
-                      disabled={workflowLoading}
-                      title="Procesar solo este procedimiento"
+                      onClick={() => {
+                        if (item.estado === 'ya_procesado') {
+                          addNotification('❌ Este procedimiento ya fue procesado', 'error')
+                          return
+                        }
+                        setSelectedItems(new Set([item.codigo]))
+                        handleStartSelected()
+                      }}
+                      disabled={workflowLoading || item.estado === 'ya_procesado'}
+                      title={item.estado === 'ya_procesado' ? 'Procedimiento ya procesado' : 'Procesar solo este procedimiento'}
                     >
                       ▶️
                     </button>
