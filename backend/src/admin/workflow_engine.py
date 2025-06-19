@@ -227,6 +227,7 @@ class WorkflowEngine:
         
         finally:
             self.active_batch_id = None
+            self.state = WorkflowState.IDLE  # Reset estado para permitir nuevos workflows
         
         return batch_id
     
