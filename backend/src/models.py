@@ -31,12 +31,18 @@ class SiNoEnum(str, Enum):
 # MODELOS DE PROCEDIMIENTOS
 # =============================================================================
 
+class DatosCompletos(BaseModel):
+    """Datos adicionales del procedimiento para filtros"""
+    disciplina: Optional[str] = Field(None, description="Disciplina del procedimiento")
+    campo: Optional[str] = Field(None, description="Campo operativo del procedimiento")
+
 class Procedure(BaseModel):
     """Modelo para procedimiento"""
     codigo: str = Field(..., description="Código del procedimiento")
     nombre: str = Field(..., description="Nombre del procedimiento")
     alcance: str = Field(..., description="Alcance del procedimiento")
     objetivo: str = Field(..., description="Objetivo del procedimiento")
+    datos_completos: Optional[DatosCompletos] = Field(None, description="Datos adicionales para filtros")
 
 class ProcedureList(BaseModel):
     """Lista de procedimientos"""
