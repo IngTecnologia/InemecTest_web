@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+// Timestamp para forzar actualización: 2025-06-19_03:52:00
 import { useQueue, useWorkflow, useAdminStatus } from '../../hooks/useAdminStatus'
 import adminApi from '../../src/services/adminApi.js'
 
@@ -249,18 +250,41 @@ const ProcedureQueue = () => {
       )}
 
 
-      {/* Workflow Status Banner - Simplificado y siempre visible cuando workflowLoading */}
+      {/* ===== BANNER DE WORKFLOW ===== */}
+      {/* FORZAR ACTUALIZACIÓN: 2025-06-19_03:52:00 */}
       {workflowLoading && (
-        <div className="workflow-banner">
-          <div className="workflow-banner-content">
-            <div className="workflow-spinner"></div>
-            <div className="workflow-info">
-              <div className="workflow-title">
-                🚀 Workflow en Progreso
-              </div>
-              <div className="workflow-status">
-                Procesando procedimientos...
-              </div>
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '8px',
+          marginBottom: '1.5rem',
+          boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem'
+        }}>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            border: '3px solid rgba(255, 255, 255, 0.3)',
+            borderTop: '3px solid white',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <div>
+            <div style={{
+              fontWeight: '600',
+              fontSize: '1.1rem',
+              marginBottom: '0.25rem'
+            }}>
+              🚀 Workflow en Progreso
+            </div>
+            <div style={{
+              fontSize: '0.9rem',
+              opacity: '0.9'
+            }}>
+              Procesando procedimientos...
             </div>
           </div>
         </div>

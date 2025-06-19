@@ -33,20 +33,9 @@ const ConfigPanel = () => {
   }
 
   const handleDebugToggle = async () => {
-    try {
-      setSaving(true)
-      const newDebugState = !localSettings.debugMode
-      await toggleDebugMode(newDebugState)
-      setLocalSettings(prev => ({ ...prev, debugMode: newDebugState }))
-      addNotification(
-        `✅ Modo debug ${newDebugState ? 'habilitado' : 'deshabilitado'}`, 
-        'success'
-      )
-    } catch (error) {
-      addNotification(`❌ Error cambiando modo debug: ${error.message}`, 'error')
-    } finally {
-      setSaving(false)
-    }
+    // DEBUG COMPLETAMENTE DESHABILITADO POR SEGURIDAD
+    addNotification('❌ Modo debug deshabilitado por seguridad', 'error')
+    return
   }
 
   const handleTestPipeline = async () => {
