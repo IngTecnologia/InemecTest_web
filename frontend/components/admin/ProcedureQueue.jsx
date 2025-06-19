@@ -248,17 +248,25 @@ const ProcedureQueue = () => {
         </div>
       )}
 
-      {/* Debug temporal - activar solo para diagnosticar */}
-      {true && adminStatus && (
-        <div style={{ background: '#f0f0f0', padding: '0.5rem', marginBottom: '1rem', fontSize: '0.8rem' }}>
-          <strong>Debug - Estado actual:</strong> {JSON.stringify(adminStatus)} <br/>
-          <strong>Workflow State:</strong> {JSON.stringify(adminStatus.workflow_state)} | 
-          <strong>Loading:</strong> {workflowLoading ? 'true' : 'false'}
-        </div>
-      )}
+      {/* Panel debug temporal - SIEMPRE VISIBLE */}
+      <div style={{ 
+        background: '#ffeb3b', 
+        color: '#000', 
+        padding: '1rem', 
+        marginBottom: '1rem', 
+        fontSize: '0.9rem',
+        border: '2px solid #ff9800',
+        borderRadius: '8px'
+      }}>
+        <h3 style={{ margin: '0 0 0.5rem 0' }}>🐛 DEBUG PANEL - SIEMPRE VISIBLE</h3>
+        <strong>AdminStatus:</strong> {adminStatus ? JSON.stringify(adminStatus) : 'null'} <br/>
+        <strong>Workflow State:</strong> {adminStatus?.workflow_state || 'undefined'} | 
+        <strong>Loading:</strong> {workflowLoading ? 'true' : 'false'} |
+        <strong>Hook activo:</strong> {adminStatus ? 'Sí' : 'No'}
+      </div>
 
       {/* Workflow Status Banner */}
-      {(adminStatus && ['scanning', 'generating', 'validating', 'correcting'].includes(adminStatus.workflow_state)) || workflowLoading ? (
+      {workflowLoading || (adminStatus && ['scanning', 'generating', 'validating', 'correcting'].includes(adminStatus.workflow_state)) ? (
         <div className="workflow-banner">
           <div className="workflow-banner-content">
             <div className="workflow-spinner"></div>

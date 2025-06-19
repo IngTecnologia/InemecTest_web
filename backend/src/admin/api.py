@@ -160,24 +160,13 @@ async def get_admin_config():
 
 @admin_router.post("/config/debug")
 async def toggle_debug_mode(enable: bool = Query(..., description="Habilitar/deshabilitar modo debug")):
-    """Alternar modo debug del sistema"""
-    try:
-        DEBUG_CONFIG["enabled"] = enable
-        DEBUG_CONFIG["mock_openai_calls"] = enable
-        DEBUG_CONFIG["verbose_logging"] = enable
-        
-        return AdminResponse(
-            success=True,
-            message=f"Modo debug {'habilitado' if enable else 'deshabilitado'}",
-            data={"debug_enabled": enable, "mock_calls": enable},
-            timestamp=get_current_timestamp()
-        )
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error configurando modo debug: {str(e)}"
-        )
+    """Alternar modo debug del sistema - DESHABILITADO POR SEGURIDAD"""
+    return AdminResponse(
+        success=False,
+        message="Modo debug deshabilitado por seguridad",
+        data={"debug_enabled": False, "mock_calls": False},
+        timestamp=get_current_timestamp()
+    )
 
 # =============================================================================
 # ENDPOINTS DE ESCANEO Y COLA
