@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react'
-import { useQueue, useWorkflow } from '../../hooks/useAdminStatus'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useQueue, useWorkflow, useAdminStatus } from '../../hooks/useAdminStatus'
 import adminApi from '../../src/services/adminApi.js'
 
 const ProcedureQueue = () => {
   const { queue, loading, error, refresh, scanProcedures, removeFromQueue } = useQueue()
   const { startWorkflow, loading: workflowLoading } = useWorkflow()
+  const { status: adminStatus } = useAdminStatus(true, 3000) // Polling cada 3 segundos
   
   const [selectedItems, setSelectedItems] = useState(new Set())
   const [filterStatus, setFilterStatus] = useState('all')
@@ -13,6 +14,7 @@ const ProcedureQueue = () => {
   const [sortOrder, setSortOrder] = useState('asc')
   const [isScanning, setIsScanning] = useState(false)
   const [notifications, setNotifications] = useState([])
+  const [workflowNotified, setWorkflowNotified] = useState(false)
 
   // Filtrar y ordenar items
   const filteredAndSortedItems = useMemo(() => {
@@ -150,6 +152,7 @@ const ProcedureQueue = () => {
       const selectedCodes = Array.from(selectedItems)
       await startWorkflow({ procedureCodes: selectedCodes })
       addNotification(`🚀 Workflow iniciado para ${selectedCodes.length} procedimientos`, 'success')
+      setWorkflowNotified(false) // Reset para detectar completación
     } catch (error) {
       addNotification(`❌ Error iniciando workflow: ${error.message}`, 'error')
     }
@@ -168,18 +171,41 @@ const ProcedureQueue = () => {
       const availableCodes = availableProcedures.map(item => item.codigo)
       await startWorkflow({ procedureCodes: availableCodes })
       addNotification(`🚀 Workflow iniciado para ${availableProcedures.length} procedimientos disponibles`, 'success')
+      setWorkflowNotified(false) // Reset para detectar completación
     } catch (error) {
       addNotification(`❌ Error iniciando workflow: ${error.message}`, 'error')
     }
   }
 
-  const addNotification = (message, type = 'info') => {
+  const addNotification = (message, type = 'info', duration = 4000) => {
     const notification = { id: Date.now(), message, type }
-    setNotifications(prev => [notification, ...prev.slice(0, 2)])
+    setNotifications(prev => [notification, ...prev.slice(0, 3)])
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== notification.id))
-    }, 4000)
+    }, duration)
   }
+
+  // Monitorear cambios en el estado del workflow
+  useEffect(() => {
+    if (!adminStatus) return
+
+    const workflowState = adminStatus.workflow_state
+    const isActive = ['scanning', 'generating', 'validating', 'correcting'].includes(workflowState)
+    const isCompleted = workflowState === 'completed'
+    const isFailed = workflowState === 'failed'
+
+    // Notificar cuando el workflow termine
+    if (isCompleted && !workflowNotified) {
+      addNotification('✓ Workflow completado exitosamente', 'success', 6000)
+      setWorkflowNotified(true)
+      refresh() // Refrescar la cola para ver los cambios
+    } else if (isFailed && !workflowNotified) {
+      addNotification('❌ Workflow falló - revisar logs', 'error', 8000)
+      setWorkflowNotified(true)
+    } else if (!isActive && !isCompleted && !isFailed) {
+      setWorkflowNotified(false) // Reset para el próximo workflow
+    }
+  }, [adminStatus, workflowNotified, refresh])
 
   const getStatusBadge = (estado) => {
     const statusConfig = {
@@ -219,6 +245,31 @@ const ProcedureQueue = () => {
               {notification.message}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Workflow Status Banner */}
+      {adminStatus && ['scanning', 'generating', 'validating', 'correcting'].includes(adminStatus.workflow_state) && (
+        <div className="workflow-banner">
+          <div className="workflow-banner-content">
+            <div className="workflow-spinner"></div>
+            <div className="workflow-info">
+              <div className="workflow-title">
+                🚀 Workflow en Progreso
+              </div>
+              <div className="workflow-status">
+                Estado: {adminStatus.workflow_state === 'scanning' ? 'Escaneando archivos' :
+                        adminStatus.workflow_state === 'generating' ? 'Generando preguntas' :
+                        adminStatus.workflow_state === 'validating' ? 'Validando resultados' :
+                        adminStatus.workflow_state === 'correcting' ? 'Corrigiendo errores' : adminStatus.workflow_state}
+              </div>
+              {adminStatus.current_batch_progress && (
+                <div className="workflow-progress">
+                  Progreso: {adminStatus.current_batch_progress.completed}/{adminStatus.current_batch_progress.total} procedimientos
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -411,8 +462,14 @@ const ProcedureQueue = () => {
                           addNotification('❌ Este procedimiento ya fue procesado', 'error')
                           return
                         }
-                        setSelectedItems(new Set([item.codigo]))
-                        handleStartSelected()
+                        const selectedCodes = [item.codigo]
+                        try {
+                          await startWorkflow({ procedureCodes: selectedCodes })
+                          addNotification(`🚀 Procesando ${item.codigo}`, 'success')
+                          setWorkflowNotified(false) // Reset para detectar completación
+                        } catch (error) {
+                          addNotification(`❌ Error: ${error.message}`, 'error')
+                        }
                       }}
                       disabled={workflowLoading || item.estado === 'ya_procesado'}
                       title={item.estado === 'ya_procesado' ? 'Procedimiento ya procesado' : 'Procesar solo este procedimiento'}
@@ -790,6 +847,53 @@ const ProcedureQueue = () => {
         .action-btn-small.disabled-processed:hover {
           transform: none;
           background: #e5e7eb;
+        }
+
+        /* Workflow Banner */
+        .workflow-banner {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 1rem 1.5rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .workflow-banner-content {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .workflow-spinner {
+          width: 24px;
+          height: 24px;
+          border: 3px solid rgba(255, 255, 255, 0.3);
+          border-top: 3px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        .workflow-info {
+          flex: 1;
+        }
+
+        .workflow-title {
+          font-weight: 600;
+          font-size: 1.1rem;
+          margin-bottom: 0.25rem;
+        }
+
+        .workflow-status {
+          font-size: 0.9rem;
+          opacity: 0.9;
+          margin-bottom: 0.25rem;
+        }
+
+        .workflow-progress {
+          font-size: 0.85rem;
+          opacity: 0.8;
+          font-family: monospace;
         }
 
         .action-btn-small.danger {
