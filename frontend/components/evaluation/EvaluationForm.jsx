@@ -259,14 +259,31 @@ const EvaluationForm = () => {
           campo: formData.campo
         },
         procedure_codigo: formData.procedure_codigo,
-        knowledge_answers: Object.entries(formData.answers).map(([questionId, selectedPosition]) => ({
-          question_id: parseInt(questionId),
-          selected_option: selectedPosition, // Posición visual seleccionada (A, B, C, D)
-          display_order: questionsDisplayOrder[questionId] || {} // Orden completo como se mostró
-        })),
+        knowledge_answers: Object.entries(formData.answers).map(([questionId, selectedPosition]) => {
+          const displayOrder = questionsDisplayOrder[questionId]
+          const answer = {
+            question_id: parseInt(questionId),
+            selected_option: selectedPosition // Posición visual seleccionada (A, B, C, D)
+          }
+          
+          // Siempre incluir display_order si existe, incluso si está incompleto
+          if (displayOrder) {
+            answer.display_order = {
+              question_text: displayOrder.question_text || null,
+              option_a_text: displayOrder.option_a_text || null,
+              option_b_text: displayOrder.option_b_text || null,
+              option_c_text: displayOrder.option_c_text || null,
+              option_d_text: displayOrder.option_d_text || null
+            }
+          }
+          
+          return answer
+        }),
         applied_knowledge: formData.applied,
         feedback: formData.feedback
       }
+
+      console.log('Datos de evaluación a enviar:', evaluationData)
 
       const response = await fetch(`${API_BASE_URL}/evaluations`, {
         method: 'POST',
@@ -278,7 +295,8 @@ const EvaluationForm = () => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.detail || 'Error enviando evaluación')
+        console.error('Error completo del servidor:', errorData)
+        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`)
       }
 
       const result = await response.json()

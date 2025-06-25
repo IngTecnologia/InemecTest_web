@@ -77,11 +77,11 @@ class UserData(BaseModel):
 
 class DisplayOrder(BaseModel):
     """Orden de opciones como se mostró al usuario"""
-    question_text: str = Field(..., description="Texto de la pregunta")
-    option_a_text: str = Field(..., description="Texto mostrado en posición A")
-    option_b_text: str = Field(..., description="Texto mostrado en posición B")
-    option_c_text: str = Field(..., description="Texto mostrado en posición C")
-    option_d_text: str = Field(..., description="Texto mostrado en posición D")
+    question_text: Optional[str] = Field(None, description="Texto de la pregunta")
+    option_a_text: Optional[str] = Field(None, description="Texto mostrado en posición A")
+    option_b_text: Optional[str] = Field(None, description="Texto mostrado en posición B")
+    option_c_text: Optional[str] = Field(None, description="Texto mostrado en posición C")
+    option_d_text: Optional[str] = Field(None, description="Texto mostrado en posición D")
 
 class KnowledgeAnswer(BaseModel):
     """Respuesta a una pregunta de conocimiento"""
