@@ -98,17 +98,18 @@ QUESTIONS_COLUMNS = {
 # Columnas para hoja de Evaluaciones
 EVALUATIONS_COLUMNS = {
     "evaluation_id": "A",     # ID único de la evaluación
-    "nombre": "B",            # Nombre del evaluado
-    "cargo": "C",             # Cargo del evaluado
-    "campo": "D",             # Campo (Cusiana, Cupiagua, etc.)
-    "procedure_codigo": "E",  # Código del procedimiento evaluado
-    "procedure_nombre": "F",  # Nombre del procedimiento
-    "total_questions": "G",   # Total de preguntas
-    "correct_answers": "H",   # Respuestas correctas
-    "score_percentage": "I",  # Porcentaje de aciertos
-    "aprobo": "J",           # Si aprobó o no
-    "started_at": "K",       # Fecha/hora de inicio
-    "completed_at": "L"      # Fecha/hora de finalización
+    "cedula": "B",            # Cédula del evaluado (IDENTIFICADOR PRINCIPAL)
+    "nombre": "C",            # Nombre del evaluado
+    "cargo": "D",             # Cargo del evaluado
+    "campo": "E",             # Campo (Cusiana, Cupiagua, etc.)
+    "procedure_codigo": "F",  # Código del procedimiento evaluado
+    "procedure_nombre": "G",  # Nombre del procedimiento
+    "total_questions": "H",   # Total de preguntas
+    "correct_answers": "I",   # Respuestas correctas
+    "score_percentage": "J",  # Porcentaje de aciertos
+    "aprobo": "K",           # Si aprobó o no
+    "started_at": "L",       # Fecha/hora de inicio
+    "completed_at": "M"      # Fecha/hora de finalización
 }
 
 # Columnas para hoja de Respuestas
@@ -324,6 +325,8 @@ UI_TEXTS = {
     "app_subtitle": "Sistema de Evaluación de Conocimientos Técnicos",
     "user_data": {
         "title": "Datos del Usuario",
+        "cedula_label": "Cédula:",
+        "cedula_placeholder": "Ingrese su número de cédula",
         "nombre_label": "Nombre:",
         "nombre_placeholder": "Ingrese su nombre completo",
         "cargo_label": "Cargo:",

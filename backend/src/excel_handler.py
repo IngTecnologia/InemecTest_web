@@ -203,8 +203,10 @@ class ExcelHandler:
     async def save_evaluation_result(self, evaluation_data: Dict[str, Any]) -> str:
         """Guardar resultado completo de evaluación en Excel"""
         try:
-            # Generar ID único para la evaluación
-            evaluation_id = str(uuid.uuid4())[:8].upper()
+            # Usar cédula como identificador principal
+            cedula = evaluation_data["user_data"]["cedula"]
+            # Generar ID único para esta sesión específica de la cédula
+            evaluation_id = f"{cedula}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
             # Preparar todas las hojas de datos
             evaluation_row = await self._prepare_evaluation_row(evaluation_id, evaluation_data)
@@ -220,7 +222,7 @@ class ExcelHandler:
                 feedback_row=feedback_row
             )
             
-            print(f"✅ Evaluación guardada con ID: {evaluation_id}")
+            print(f"✅ Evaluación guardada para cédula: {cedula}, ID sesión: {evaluation_id}")
             return evaluation_id
             
         except Exception as e:
@@ -234,6 +236,7 @@ class ExcelHandler:
         
         return {
             "evaluation_id": evaluation_id,
+            "cedula": data["user_data"]["cedula"],
             "nombre": data["user_data"]["nombre"],
             "cargo": data["user_data"]["cargo"],
             "campo": data["user_data"]["campo"],

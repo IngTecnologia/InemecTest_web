@@ -70,6 +70,7 @@ class ProcedureWithQuestions(BaseModel):
 
 class UserData(BaseModel):
     """Datos del usuario que toma la evaluación"""
+    cedula: str = Field(..., min_length=1, description="Cédula del evaluado (identificador principal)")
     nombre: str = Field(..., min_length=1, description="Nombre del evaluado")
     cargo: str = Field(..., min_length=1, description="Cargo del evaluado")
     campo: CampoEnum = Field(..., description="Campo de trabajo")

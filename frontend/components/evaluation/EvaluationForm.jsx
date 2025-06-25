@@ -22,6 +22,7 @@ const EvaluationForm = () => {
   
   const [formData, setFormData] = useState({
     // Datos del usuario
+    cedula: '',
     nombre: '',
     cargo: '',
     campo: '',
@@ -240,6 +241,7 @@ const EvaluationForm = () => {
       // Preparar datos para envío
       const evaluationData = {
         user_data: {
+          cedula: formData.cedula,
           nombre: formData.nombre,
           cargo: formData.cargo,
           campo: formData.campo
@@ -273,6 +275,7 @@ const EvaluationForm = () => {
       // Reiniciar formulario
       setCurrentStep(1)
       setFormData({
+        cedula: '',
         nombre: '',
         cargo: '',
         campo: '',
@@ -314,6 +317,16 @@ const EvaluationForm = () => {
         </div>
       )}
       
+      <div className="form-group">
+        <label>Cédula:</label>
+        <input
+          type="text"
+          value={formData.cedula}
+          onChange={(e) => handleInputChange('cedula', e.target.value)}
+          placeholder="Ingrese su número de cédula"
+        />
+      </div>
+
       <div className="form-group">
         <label>Nombre:</label>
         <input
@@ -547,7 +560,7 @@ const EvaluationForm = () => {
       <button 
         className="btn" 
         onClick={nextStep}
-        disabled={!formData.nombre || !formData.cargo || !formData.campo || !formData.procedure_codigo || loading}
+        disabled={!formData.cedula || !formData.nombre || !formData.cargo || !formData.campo || !formData.procedure_codigo || loading}
       >
         Continuar a Evaluación de Conocimiento
       </button>
