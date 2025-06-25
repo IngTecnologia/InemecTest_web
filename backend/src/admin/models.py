@@ -248,7 +248,48 @@ class AdminResponse(BaseModel):
     success: bool = Field(..., description="Si la operación fue exitosa")
     message: str = Field(..., description="Mensaje de respuesta")
     data: Optional[Any] = Field(None, description="Datos de la respuesta")
-    timestamp: str = Field(..., description="Timestamp de la respuesta")
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Timestamp de la respuesta")
+    
+    @classmethod
+    def create_safe(cls, success: bool, message: str, data: Optional[Any] = None, timestamp: Optional[str] = None):
+        """
+        Crear AdminResponse de forma segura, sanitizando los datos si es necesario
+        """
+        if timestamp is None:
+            timestamp = datetime.now().isoformat()
+        
+        # Sanitizar datos para evitar objetos AdminResponse anidados
+        sanitized_data = cls._sanitize_data(data) if data is not None else None
+        
+        return cls(
+            success=success,
+            message=message,
+            data=sanitized_data,
+            timestamp=timestamp
+        )
+    
+    @staticmethod
+    def _sanitize_data(data: Any) -> Any:
+        """
+        Sanitizar datos para remover objetos AdminResponse embebidos o problemáticos
+        """
+        if isinstance(data, dict):
+            sanitized = {}
+            for key, value in data.items():
+                # Detectar objetos AdminResponse embebidos
+                if isinstance(value, dict) and all(k in value for k in ["success", "message", "data", "timestamp"]):
+                    print(f"⚠️ AdminResponse embebido detectado en clave '{key}', extrayendo solo los datos")
+                    sanitized[key] = value.get("data", value)
+                elif isinstance(value, str) and ("AdminResponse" in value or "default_factory" in value):
+                    print(f"⚠️ String problemático detectado en clave '{key}': {value[:100]}...")
+                    sanitized[key] = "SANITIZED_DATA"  
+                else:
+                    sanitized[key] = AdminResponse._sanitize_data(value)
+            return sanitized
+        elif isinstance(data, list):
+            return [AdminResponse._sanitize_data(item) for item in data]
+        else:
+            return data
 
 class QueueResponse(BaseModel):
     """Respuesta específica para operaciones de cola"""

@@ -23,7 +23,7 @@ const EvaluationsManagerEnhanced = () => {
       setLoading(true)
       setError('')
       
-      const response = await fetch('/api/v1/admin/evaluations/stats', {
+      const response = await fetch('/api/v1/admin/evaluations/statistics', {
         headers: getAuthHeaders()
       })
       

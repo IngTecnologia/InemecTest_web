@@ -424,7 +424,16 @@ class ExcelHandler:
                 return []
             
             df = pd.read_excel(self.results_file, sheet_name=RESULTS_SHEETS["evaluations"]["name"])
-            return [row.to_dict() for _, row in df.iterrows()]
+            evaluations = [row.to_dict() for _, row in df.iterrows()]
+            
+            # Sanitizar datos para evitar objetos AdminResponse embebidos
+            sanitized_evaluations = []
+            for evaluation in evaluations:
+                sanitized_eval = self._sanitize_evaluation_data(evaluation)
+                if sanitized_eval:  # Solo agregar si la sanitización fue exitosa
+                    sanitized_evaluations.append(sanitized_eval)
+            
+            return sanitized_evaluations
             
         except Exception as e:
             print(f"❌ Error obteniendo evaluaciones: {e}")
@@ -576,6 +585,52 @@ class ExcelHandler:
     # =================================================================
     # FUNCIONES AUXILIARES
     # =================================================================
+    
+    def _sanitize_evaluation_data(self, evaluation_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Sanitizar datos de evaluación para remover objetos AdminResponse embebidos
+        y otros objetos problemáticos que puedan causar errores de validación
+        """
+        try:
+            sanitized = {}
+            
+            for key, value in evaluation_data.items():
+                # Saltar valores que son NaN o None
+                if pd.isna(value) or value is None:
+                    sanitized[key] = None
+                    continue
+                
+                # Convertir a string y verificar que no sea un objeto serializado problemático
+                str_value = str(value)
+                
+                # Detectar y filtrar objetos AdminResponse embebidos u otros objetos problemáticos
+                if (
+                    "AdminResponse" in str_value or
+                    "default_factory" in str_value or
+                    "timestamp" in str_value and "Field" in str_value or
+                    str_value.startswith("{") and "success" in str_value and "message" in str_value
+                ):
+                    print(f"⚠️ Objeto problemático detectado en campo '{key}': {str_value[:100]}...")
+                    # En lugar de saltar completamente, usar un valor por defecto
+                    if key in ["evaluation_id", "cedula", "nombre", "procedure_codigo"]:
+                        sanitized[key] = f"SANITIZED_{key.upper()}"
+                    else:
+                        sanitized[key] = None
+                    continue
+                
+                # Para tipos primitivos simples, mantener el valor
+                if isinstance(value, (str, int, float, bool)):
+                    sanitized[key] = value
+                else:
+                    # Para otros tipos, convertir a string de forma segura
+                    sanitized[key] = str_value if str_value != "nan" else None
+            
+            return sanitized
+            
+        except Exception as e:
+            print(f"❌ Error sanitizando datos de evaluación: {e}")
+            print(f"❌ Datos problemáticos: {evaluation_data}")
+            return None
     
     def _get_col_index(self, column_letter: str) -> int:
         """Convertir letra de columna a índice (A=0, B=1, etc.)"""

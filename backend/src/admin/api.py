@@ -1002,21 +1002,44 @@ async def get_generation_results():
 # ENDPOINTS DE GESTIÓN DE PRUEBAS PRESENTADAS
 # =============================================================================
 
-@admin_router.get("/evaluations/stats")
-async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_session)):
+@admin_router.get("/evaluations/statistics")
+async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_session)):
     """Obtener estadísticas de evaluaciones presentadas"""
     try:
         from ..excel_handler import ExcelHandler
         
         excel_handler = ExcelHandler()
-        evaluations = await excel_handler.get_all_evaluations()
+        
+        # Obtener evaluaciones con manejo de errores robusto
+        try:
+            evaluations = await excel_handler.get_all_evaluations()
+            
+            # Limpiar datos de evaluaciones para evitar objetos AdminResponse anidados
+            if evaluations:
+                clean_evaluations = []
+                for eval_data in evaluations:
+                    if isinstance(eval_data, dict):
+                        # Convertir todos los valores a strings seguros
+                        clean_eval = {}
+                        for key, value in eval_data.items():
+                            if isinstance(value, (str, int, float, bool)) or value is None:
+                                clean_eval[key] = value
+                            else:
+                                # Convertir objetos complejos a string para evitar problemas
+                                clean_eval[key] = str(value)
+                        clean_evaluations.append(clean_eval)
+                evaluations = clean_evaluations
+                
+        except Exception as excel_error:
+            print(f"⚠️ Error leyendo Excel, devolviendo datos vacíos: {excel_error}")
+            evaluations = []
         
         # Si no hay evaluaciones, retornar datos vacíos
         if not evaluations:
-            return AdminResponse(
-                success=True,
-                message="No hay evaluaciones registradas",
-                data={
+            return {
+                "success": True,
+                "message": "No hay evaluaciones registradas",
+                "data": {
                     "total_evaluations": 0,
                     "by_campo": {},
                     "by_disciplina": {},
@@ -1025,8 +1048,8 @@ async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_sessio
                     "failed_count": 0,
                     "recent_evaluations": []
                 },
-                timestamp=datetime.now().isoformat()
-            )
+                "timestamp": datetime.now().isoformat()
+            }
         
         # Procesar estadísticas básicas
         stats_by_campo = {}
@@ -1067,10 +1090,10 @@ async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_sessio
             print(f"⚠️ Error procesando evaluaciones recientes: {e}")
             recent_evaluations = []
         
-        return AdminResponse(
-            success=True,
-            message="Estadísticas obtenidas exitosamente",
-            data={
+        return {
+            "success": True,
+            "message": "Estadísticas obtenidas exitosamente",
+            "data": {
                 "total_evaluations": len(evaluations),
                 "by_campo": stats_by_campo,
                 "by_disciplina": {"General": len(evaluations)},  # Simplificado
@@ -1079,8 +1102,8 @@ async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_sessio
                 "failed_count": len(evaluations) - approved_count,
                 "recent_evaluations": recent_evaluations
             },
-            timestamp=datetime.now().isoformat()
-        )
+            "timestamp": datetime.now().isoformat()
+        }
         
     except Exception as e:
         print(f"❌ Error en get_evaluations_stats: {e}")
@@ -1135,7 +1158,7 @@ async def search_evaluations(
         # Aplicar límite
         result = filtered_evaluations[:limit]
         
-        return AdminResponse(
+        return AdminResponse.create_safe(
             success=True,
             message=f"Se encontraron {len(result)} evaluaciones",
             data={
@@ -1147,8 +1170,7 @@ async def search_evaluations(
                     "campo": campo,
                     "procedure_codigo": procedure_codigo
                 }
-            },
-            timestamp=datetime.now().isoformat()
+            }
         )
         
     except Exception as e:
