@@ -9,8 +9,25 @@ class AdminApiService {
   // ESTADO Y CONFIGURACIÓN
   // =============================================================================
   
+  // Método para obtener headers de autenticación
+  getAuthHeaders() {
+    const token = localStorage.getItem('admin_token')
+    return token ? { 'Authorization': `Bearer ${token}` } : {}
+  }
+
+  // Método helper para hacer fetch con autenticación
+  async authenticatedFetch(url, options = {}) {
+    const defaultOptions = {
+      headers: {
+        ...this.getAuthHeaders(),
+        ...options.headers
+      }
+    }
+    return fetch(url, { ...options, ...defaultOptions })
+  }
+  
   async getStatus() {
-    const response = await fetch(`${API_BASE_URL}/status`)
+    const response = await this.authenticatedFetch(`${API_BASE_URL}/status`)
     if (!response.ok) throw new Error('Error obteniendo estado del admin')
     return response.json()
   }

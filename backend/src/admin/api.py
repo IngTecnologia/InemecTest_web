@@ -3,7 +3,7 @@ API endpoints para el módulo administrativo
 Integración completa con el workflow de generación de preguntas
 """
 
-from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, Depends, Header
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import os
@@ -13,7 +13,7 @@ from .models import *
 from .procedure_scanner import ProcedureScanner, crear_scanner
 from .workflow_engine import WorkflowEngine, create_workflow_engine
 from .config import validate_admin_config, DEBUG_CONFIG
-from .config import get_openai_api_key
+from .config import get_openai_api_key, validate_admin_credentials, get_admin_users
 
 # Router para endpoints admin
 admin_router = APIRouter(prefix="/admin", tags=["Admin - Generación de Preguntas"])
@@ -22,8 +22,107 @@ admin_router = APIRouter(prefix="/admin", tags=["Admin - Generación de Pregunta
 scanner_instance = None
 workflow_engine_instance = None
 
+# =============================================================================
+# AUTENTICACIÓN
+# =============================================================================
+
+# Almacenar sesiones activas (en producción usar Redis o DB)
+active_sessions = {}
+
+class AdminLoginRequest(BaseModel):
+    username: str
+    code: str
+
+class AdminLoginResponse(BaseModel):
+    success: bool
+    message: str
+    user: Optional[Dict[str, Any]] = None
+    session_token: Optional[str] = None
+
+def verify_admin_session(authorization: str = Header(None)):
+    """Middleware para verificar sesión de admin"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="No authorization header")
+    
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization format")
+    
+    token = authorization.replace("Bearer ", "")
+    
+    if token not in active_sessions:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    
+    return active_sessions[token]
+
+@admin_router.post("/auth/login", response_model=AdminLoginResponse)
+async def admin_login(request: AdminLoginRequest):
+    """Login para acceso admin"""
+    try:
+        user_data = validate_admin_credentials(request.username, request.code)
+        
+        if not user_data:
+            raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        
+        # Guardar sesión
+        session_token = user_data["session_token"]
+        active_sessions[session_token] = user_data
+        
+        return AdminLoginResponse(
+            success=True,
+            message="Login exitoso",
+            user={
+                "username": user_data["username"],
+                "name": user_data["name"],
+                "permissions": user_data["permissions"]
+            },
+            session_token=session_token
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en login: {str(e)}")
+
+@admin_router.post("/auth/logout")
+async def admin_logout(current_user: Dict = Depends(verify_admin_session)):
+    """Logout de admin"""
+    # Buscar y eliminar sesión del usuario
+    session_to_remove = None
+    for token, user_data in active_sessions.items():
+        if user_data["username"] == current_user["username"]:
+            session_to_remove = token
+            break
+    
+    if session_to_remove:
+        del active_sessions[session_to_remove]
+    
+    return {"success": True, "message": "Logout exitoso"}
+
+@admin_router.get("/auth/verify")
+async def verify_session(current_user: Dict = Depends(verify_admin_session)):
+    """Verificar si la sesión es válida"""
+    return {
+        "success": True,
+        "user": {
+            "username": current_user["username"],
+            "name": current_user["name"],
+            "permissions": current_user["permissions"]
+        }
+    }
+
+@admin_router.get("/auth/users")
+async def get_available_users():
+    """Obtener lista de usuarios disponibles (solo usernames)"""
+    users = get_admin_users()
+    active_users = [username for username, user_data in users.items() if user_data.get("active", True)]
+    return {"users": active_users}
+
+# =============================================================================
+# ENDPOINTS PROTEGIDOS (requieren autenticación)
+# =============================================================================
+
 @admin_router.post("/reset-instances")
-async def reset_instances():
+async def reset_instances(current_user: Dict = Depends(verify_admin_session)):
     """Reiniciar instancias globales (para debug)"""
     global scanner_instance, workflow_engine_instance
     scanner_instance = None
@@ -56,7 +155,7 @@ def get_workflow_engine() -> WorkflowEngine:
 # =============================================================================
 
 @admin_router.get("/status", response_model=AdminResponse)
-async def get_admin_status():
+async def get_admin_status(current_user: Dict = Depends(verify_admin_session)):
     """Estado general del módulo administrativo"""
     try:
         scanner = get_scanner()

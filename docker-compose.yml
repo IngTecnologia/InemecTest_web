@@ -39,6 +39,8 @@ services:
       - PROCEDURES_SOURCE_DIR=data/procedures_source
       - GENERATION_BATCH_SIZE=5
       - MAX_RETRIES=3
+      # Variables de autenticación admin
+      - SECRET_KEY=${SECRET_KEY:-dicacocu_secret_2024}
     networks:
       - inemectest-network
 

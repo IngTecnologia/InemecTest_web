@@ -1,12 +1,36 @@
 import React, { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAdminStatus } from '../../hooks/useAdminStatus'
+import useAdminAuth from '../../hooks/useAdminAuth'
+import AdminLogin from './AdminLogin'
 
 const AdminLayout = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { status, loading, error } = useAdminStatus(true, 10000)
+  const { isAuthenticated, user, loading: authLoading, login, logout } = useAdminAuth()
+  const { status, loading, error } = useAdminStatus(isAuthenticated, 10000)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // Mostrar pantalla de login si no está autenticado
+  if (authLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <div style={{ color: 'white', fontSize: '1.2rem' }}>
+          Verificando autenticación...
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <AdminLogin onLoginSuccess={login} />
+  }
 
   const getStatusColor = (workflowState) => {
     switch (workflowState) {
@@ -116,6 +140,18 @@ const AdminLayout = () => {
               </>
             )}
           </div>
+          
+          <div className="user-info">
+            <span className="user-name">👤 {user?.name || user?.username}</span>
+            <button 
+              className="logout-button"
+              onClick={logout}
+              title="Cerrar Sesión"
+            >
+              🚪 Salir
+            </button>
+          </div>
+          
           <button 
             className="home-button"
             onClick={() => navigate('/')}

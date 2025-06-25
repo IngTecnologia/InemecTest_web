@@ -7,6 +7,71 @@ import os
 from typing import Dict, Any, List, Optional
 import json
 from pathlib import Path
+import hashlib
+
+# =============================================================================
+# CONFIGURACIÓN DE AUTENTICACIÓN ADMIN
+# =============================================================================
+
+# Configuración de usuarios admin con códigos de acceso
+ADMIN_USERS = {
+    "admin": {
+        "name": "Administrador Principal",
+        "code": "ADMIN2024",
+        "permissions": ["full_access"],
+        "active": True
+    },
+    "supervisor": {
+        "name": "Supervisor",
+        "code": "SUPER2024", 
+        "permissions": ["view", "generate"],
+        "active": True
+    },
+    "tecnico": {
+        "name": "Técnico",
+        "code": "TECH2024",
+        "permissions": ["view"],
+        "active": True
+    }
+}
+
+# Función para obtener configuración de usuarios desde variables de entorno
+def get_admin_users():
+    """Obtener configuración de usuarios admin desde env o usar defaults"""
+    env_users = os.getenv("ADMIN_USERS")
+    if env_users:
+        try:
+            return json.loads(env_users)
+        except json.JSONDecodeError:
+            print("⚠️ Error parsing ADMIN_USERS env var, using defaults")
+    return ADMIN_USERS
+
+def validate_admin_credentials(username: str, code: str) -> Optional[Dict[str, Any]]:
+    """Validar credenciales de admin"""
+    users = get_admin_users()
+    user = users.get(username)
+    
+    if not user:
+        return None
+        
+    if not user.get("active", True):
+        return None
+        
+    if user.get("code") != code:
+        return None
+        
+    return {
+        "username": username,
+        "name": user.get("name", username),
+        "permissions": user.get("permissions", ["view"]),
+        "session_token": generate_session_token(username)
+    }
+
+def generate_session_token(username: str) -> str:
+    """Generar token de sesión simple"""
+    import time
+    data = f"{username}_{time.time()}_{os.getenv('SECRET_KEY', 'default_secret')}"
+    return hashlib.sha256(data.encode()).hexdigest()[:32]
 
 # =============================================================================
 # CONFIGURACIÓN DE OPENAI Y GENERACIÓN
