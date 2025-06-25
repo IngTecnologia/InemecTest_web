@@ -18,7 +18,7 @@ from src.admin.api import admin_router  # ← LÍNEA AGREGADA
 from src.excel_handler import ExcelHandler
 
 # Validar configuración al iniciar
-print("🚀 Iniciando InemecTest...")
+print("🚀 Iniciando InemecTest: DICACOCU 360°...")
 if not validate_config():
     print("❌ Error en configuración. Deteniendo aplicación.")
     exit(1)
@@ -142,7 +142,7 @@ async def root():
     """Endpoint raíz de la API"""
     return APIResponse(
         success=True,
-        message="InemecTest API está funcionando",
+        message="InemecTest: DICACOCU 360° API está funcionando",
         data={
             "version": API_CONFIG["version"],
             "timestamp": datetime.now().isoformat(),
@@ -215,7 +215,7 @@ async def get_system_info():
             message="Información del sistema obtenida",
             data={
                 "system": {
-                    "name": "InemecTest",
+                    "name": "InemecTest: DICACOCU 360°",
                     "version": API_CONFIG["version"],
                     "mode": "Excel-based"
                 },

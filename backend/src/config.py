@@ -162,7 +162,7 @@ FILE_VALIDATION = {
 # =============================================================================
 
 API_CONFIG = {
-    "title": "InemecTest API",
+    "title": "InemecTest: DICACOCU 360° API",
     "description": "API para sistema de evaluación basado en Excel",
     "version": "2.0.0",
     "host": "0.0.0.0",
@@ -320,7 +320,7 @@ FORM_TEXTS = {
 
 # Textos para la interfaz de usuario
 UI_TEXTS = {
-    "app_title": "InemecTest",
+    "app_title": "InemecTest: DICACOCU 360°",
     "app_subtitle": "Sistema de Evaluación de Conocimientos Técnicos",
     "user_data": {
         "title": "Datos del Usuario",

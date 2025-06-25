@@ -5,7 +5,7 @@ function EvaluationPage() {
   return (
     <div className="container">
       <div className="header">
-        <h1>InemecTest</h1>
+        <h1>InemecTest: DICACOCU 360°</h1>
         <p>Evaluación de Conocimientos Técnicos: Programa de Disciplina Operativa</p>
       </div>
       <EvaluationForm />

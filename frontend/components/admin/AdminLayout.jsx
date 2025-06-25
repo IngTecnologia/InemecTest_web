@@ -79,7 +79,7 @@ const AdminLayout = () => {
           >
             {sidebarCollapsed ? '▶️' : '◀️'}
           </button>
-          <h1>InemecTest - Administración</h1>
+          <h1>InemecTest: DICACOCU 360° - Administración</h1>
         </div>
         
         <div className="header-center">
