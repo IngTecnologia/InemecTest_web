@@ -15,11 +15,15 @@ procedimientos_y_preguntas.xlsx
 procedures_source/
 **/procedures_source/
 
+# Directorio completo de datos del backend (incluye archivos sensibles y grandes)
+backend/data/
+**/data/
+
 # =============================================================================
 # Archivos temporales y logs del sistema admin
 # =============================================================================
 
-# Directorio temporal del módulo admin
+# Directorio temporal del mï¿½dulo admin
 backend/data/admin_temp/
 **/admin_temp/
 
@@ -28,7 +32,7 @@ logs/
 *.log
 
 # =============================================================================
-# Configuración y claves API
+# Configuraciï¿½n y claves API
 # =============================================================================
 
 # Variables de entorno con claves sensibles
@@ -114,7 +118,7 @@ docker-compose.override.yml
 *.swo
 
 # =============================================================================
-# Build y distribución
+# Build y distribuciï¿½n
 # =============================================================================
 
 # Frontend build
@@ -128,7 +132,7 @@ coverage/
 .nyc_output
 
 # =============================================================================
-# Archivos específicos del proyecto
+# Archivos especï¿½ficos del proyecto
 # =============================================================================
 
 # Cualquier archivo de test con datos reales
