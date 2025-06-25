@@ -458,6 +458,7 @@ ADMIN_FILES = {
     "validation_results": str(BASE_DATA_DIR / "admin_validation_results.json"),
     "correction_log": str(BASE_DATA_DIR / "admin_correction_log.json"),
     "generation_stats": str(BASE_DATA_DIR / "admin_generation_stats.json"),
+    "metadata_cache": str(BASE_DATA_DIR / "admin_metadata_cache.json"),
     # ARCHIVOS PRINCIPALES
     "generated_questions": str(BASE_DATA_DIR / "generated_questions.json"),
     "excel_data": str(BASE_DATA_DIR / "procedimientos_y_preguntas.xlsx"),
