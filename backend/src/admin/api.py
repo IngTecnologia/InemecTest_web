@@ -9,7 +9,10 @@ from datetime import datetime
 import os
 import asyncio
 
-from .models import *
+from .models import (
+    AdminResponse, QueueResponse, GenerationStartResponse, ScanResult,
+    QueueItem, ProcessingProgress, GenerationStats, BatchValidationSummary
+)
 from .procedure_scanner import ProcedureScanner, crear_scanner
 from .workflow_engine import WorkflowEngine, create_workflow_engine
 from .config import validate_admin_config, DEBUG_CONFIG
@@ -206,7 +209,7 @@ async def get_admin_status(current_user: Dict = Depends(verify_admin_session)):
             success=True,
             message="Estado del módulo administrativo obtenido",
             data=status_data,
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
@@ -248,7 +251,7 @@ async def get_admin_config():
             success=True,
             message="Configuración del módulo admin obtenida",
             data=config_data,
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
@@ -322,7 +325,7 @@ async def scan_procedures():
             total_procedimientos=resultado.get("total_procedimientos", len(queue_items)),
             cola_generacion=queue_items,
             tracking_file=str(scanner.tracking_file),
-            timestamp=get_current_timestamp(),
+            timestamp=datetime.now().isoformat(),
             scan_duration=scan_duration
         )
         
@@ -459,7 +462,7 @@ async def remove_from_queue(codigo: str, version: str, reason: str = "manual_rem
                 success=True,
                 message=f"Procedimiento {codigo} v{version} removido de la cola",
                 data={"codigo": codigo, "version": version, "reason": reason},
-                timestamp=get_current_timestamp()
+                timestamp=datetime.now().isoformat()
             )
         else:
             raise HTTPException(
@@ -706,7 +709,7 @@ async def get_workflow_progress(batch_id: str = None):
             success=True,
             message=f"Progreso del workflow",
             data=progress.dict(),
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
@@ -733,7 +736,7 @@ async def get_workflow_status():
             success=True,
             message="Estado del workflow obtenido",
             data=workflow_status,
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
@@ -754,14 +757,14 @@ async def cancel_workflow():
                 success=True,
                 message="Workflow cancelado exitosamente",
                 data={"cancelled_batch_id": workflow_engine.active_batch_id},
-                timestamp=get_current_timestamp()
+                timestamp=datetime.now().isoformat()
             )
         else:
             return AdminResponse(
                 success=False,
                 message="No hay workflow activo para cancelar",
                 data={"state": workflow_engine.state.value},
-                timestamp=get_current_timestamp()
+                timestamp=datetime.now().isoformat()
             )
         
     except Exception as e:
@@ -822,7 +825,7 @@ async def generate_questions_single_procedure(
             success=True,
             message=f"Generación iniciada para {codigo} v{version}",
             data={"codigo": codigo, "version": version},
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except HTTPException:
@@ -871,7 +874,7 @@ async def validate_questions_batch(batch_data: Dict[str, Any]):
             success=True,
             message="Validación completada",
             data=summary,
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except HTTPException:
@@ -952,7 +955,7 @@ async def get_generation_results():
                 success=True,
                 message="No hay resultados disponibles",
                 data={"results": []},
-                timestamp=get_current_timestamp()
+                timestamp=datetime.now().isoformat()
             )
         
         # Buscar archivos de resultados
@@ -986,7 +989,7 @@ async def get_generation_results():
             success=True,
             message=f"Resultados obtenidos: {len(results)}",
             data={"results": results, "total": len(results)},
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
@@ -1008,6 +1011,7 @@ async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_sessio
         excel_handler = ExcelHandler()
         evaluations = await excel_handler.get_all_evaluations()
         
+        # Si no hay evaluaciones, retornar datos vacíos
         if not evaluations:
             return AdminResponse(
                 success=True,
@@ -1017,35 +1021,51 @@ async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_sessio
                     "by_campo": {},
                     "by_disciplina": {},
                     "approval_rate": 0,
+                    "approved_count": 0,
+                    "failed_count": 0,
                     "recent_evaluations": []
-                }
+                },
+                timestamp=datetime.now().isoformat()
             )
         
-        # Estadísticas por campo
+        # Procesar estadísticas básicas
         stats_by_campo = {}
-        stats_by_disciplina = {}
         approved_count = 0
         
         for eval_data in evaluations:
+            # Procesar campo
             campo = eval_data.get("campo", "Sin campo")
-            stats_by_campo[campo] = stats_by_campo.get(campo, 0) + 1
+            if campo:
+                stats_by_campo[campo] = stats_by_campo.get(campo, 0) + 1
             
-            # Para disciplina necesitamos obtener info del procedimiento
-            # Por ahora usamos una aproximación
-            disciplina = "General"  # TODO: obtener desde procedimiento
-            stats_by_disciplina[disciplina] = stats_by_disciplina.get(disciplina, 0) + 1
-            
-            if eval_data.get("aprobo") == "Sí":
+            # Contar aprobados - manejar diferentes formatos posibles
+            aprobo = eval_data.get("aprobo", "")
+            if str(aprobo).lower() in ["sí", "si", "yes", "true", "1"]:
                 approved_count += 1
         
         approval_rate = (approved_count / len(evaluations)) * 100 if evaluations else 0
         
-        # Evaluaciones recientes (últimas 10)
-        recent_evaluations = sorted(
-            evaluations, 
-            key=lambda x: x.get("completed_at", ""), 
-            reverse=True
-        )[:10]
+        # Preparar evaluaciones recientes de forma segura
+        recent_evaluations = []
+        try:
+            sorted_evaluations = sorted(
+                evaluations,
+                key=lambda x: str(x.get("completed_at", "")),
+                reverse=True
+            )
+            # Solo incluir campos básicos para evitar problemas de serialización
+            for eval_data in sorted_evaluations[:10]:
+                recent_evaluations.append({
+                    "evaluation_id": str(eval_data.get("evaluation_id", "")),
+                    "cedula": str(eval_data.get("cedula", "")),
+                    "nombre": str(eval_data.get("nombre", "")),
+                    "procedure_codigo": str(eval_data.get("procedure_codigo", "")),
+                    "aprobo": str(eval_data.get("aprobo", "")),
+                    "completed_at": str(eval_data.get("completed_at", ""))
+                })
+        except Exception as e:
+            print(f"⚠️ Error procesando evaluaciones recientes: {e}")
+            recent_evaluations = []
         
         return AdminResponse(
             success=True,
@@ -1053,15 +1073,17 @@ async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_sessio
             data={
                 "total_evaluations": len(evaluations),
                 "by_campo": stats_by_campo,
-                "by_disciplina": stats_by_disciplina,
+                "by_disciplina": {"General": len(evaluations)},  # Simplificado
                 "approval_rate": round(approval_rate, 2),
                 "approved_count": approved_count,
                 "failed_count": len(evaluations) - approved_count,
                 "recent_evaluations": recent_evaluations
-            }
+            },
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
+        print(f"❌ Error en get_evaluations_stats: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error obteniendo estadísticas de evaluaciones: {str(e)}"
@@ -1125,7 +1147,8 @@ async def search_evaluations(
                     "campo": campo,
                     "procedure_codigo": procedure_codigo
                 }
-            }
+            },
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
@@ -1167,8 +1190,9 @@ async def get_evaluation_report(
                 "answers": answers,
                 "applied_knowledge": applied_knowledge,
                 "feedback": feedback,
-                "report_generated_at": datetime.now().isoformat()
-            }
+                "report_generated_at": get_current_timestamp()
+            },
+            timestamp=datetime.now().isoformat()
         )
         
     except HTTPException:
@@ -1238,7 +1262,7 @@ async def test_full_pipeline():
                 "mock_calls": True,
                 "procedure_tested": "TEST-PIPELINE-001"
             },
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except HTTPException:
@@ -1286,7 +1310,7 @@ async def health_check_admin():
                 "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
                 "debug_mode": DEBUG_CONFIG["enabled"]
             },
-            timestamp=get_current_timestamp()
+            timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
