@@ -82,6 +82,12 @@ const AdminLayout = () => {
       label: 'Configuración',
       icon: '⚙️',
       description: 'Configurar el sistema'
+    },
+    {
+      path: '/admin/evaluations',
+      label: 'Gestión de Pruebas',
+      icon: '📊',
+      description: 'Ver estadísticas y reportes de evaluaciones'
     }
   ]
 

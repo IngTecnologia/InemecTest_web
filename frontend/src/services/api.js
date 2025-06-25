@@ -168,6 +168,34 @@ class AdminApiService {
   }
 
   // =============================================================================
+  // GESTIÓN DE EVALUACIONES
+  // =============================================================================
+
+  async getEvaluationsStats() {
+    const response = await this.authenticatedFetch(`${API_BASE_URL}/evaluations/stats`)
+    if (!response.ok) throw new Error('Error obteniendo estadísticas de evaluaciones')
+    return response.json()
+  }
+
+  async searchEvaluations(filters = {}) {
+    const queryParams = new URLSearchParams()
+    if (filters.cedula) queryParams.append('cedula', filters.cedula)
+    if (filters.campo) queryParams.append('campo', filters.campo)
+    if (filters.procedure_codigo) queryParams.append('procedure_codigo', filters.procedure_codigo)
+    if (filters.limit) queryParams.append('limit', filters.limit)
+
+    const response = await this.authenticatedFetch(`${API_BASE_URL}/evaluations/search?${queryParams}`)
+    if (!response.ok) throw new Error('Error buscando evaluaciones')
+    return response.json()
+  }
+
+  async getEvaluationReport(evaluationId) {
+    const response = await this.authenticatedFetch(`${API_BASE_URL}/evaluations/${evaluationId}/report`)
+    if (!response.ok) throw new Error('Error obteniendo reporte de evaluación')
+    return response.json()
+  }
+
+  // =============================================================================
   // TESTING Y UTILIDADES
   // =============================================================================
 

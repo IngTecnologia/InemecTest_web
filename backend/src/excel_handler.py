@@ -251,18 +251,25 @@ class ExcelHandler:
         }
     
     async def _prepare_answers_rows(self, evaluation_id: str, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Preparar filas de respuestas detalladas"""
+        """Preparar filas de respuestas detalladas con orden de visualización completo"""
         rows = []
         
         for i, answer in enumerate(data["knowledge_answers"], 1):
+            display_order = answer.get("display_order", {})
+            
             row = {
                 "evaluation_id": evaluation_id,
                 "question_id": answer.get("question_id", i),
-                "question_text": answer.get("question_text", ""),
+                "question_text": display_order.get("question_text", answer.get("question_text", "")),
+                "option_a_text": display_order.get("option_a_text", ""),
+                "option_b_text": display_order.get("option_b_text", ""),
+                "option_c_text": display_order.get("option_c_text", ""),
+                "option_d_text": display_order.get("option_d_text", ""),
                 "selected_option": answer["selected_option"],
                 "selected_text": answer.get("selected_text", ""),
                 "correct_option": answer.get("correct_option", ""),
                 "correct_text": answer.get("correct_text", ""),
+                "correct_option_displayed": answer.get("correct_option_displayed", ""),
                 "is_correct": "Sí" if answer.get("is_correct", False) else "No"
             }
             rows.append(row)
@@ -451,6 +458,120 @@ class ExcelHandler:
         except Exception as e:
             print(f"❌ Error obteniendo estadísticas: {e}")
             return []
+
+    # =================================================================
+    # MÉTODOS PARA GESTIÓN DE EVALUACIONES (ADMIN)
+    # =================================================================
+    
+    async def get_evaluation_by_id(self, evaluation_id: str) -> Optional[Dict[str, Any]]:
+        """Obtener datos principales de una evaluación por ID"""
+        try:
+            if not self.results_file.exists():
+                return None
+            
+            evaluations = await self.get_all_evaluations()
+            for evaluation in evaluations:
+                if evaluation.get("evaluation_id") == evaluation_id:
+                    return evaluation
+            
+            return None
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo evaluación por ID: {e}")
+            return None
+    
+    async def get_evaluation_answers(self, evaluation_id: str) -> List[Dict[str, Any]]:
+        """Obtener respuestas detalladas de una evaluación"""
+        try:
+            if not self.results_file.exists():
+                return []
+            
+            wb = load_workbook(self.results_file, data_only=True)
+            
+            if RESULTS_SHEETS["answers"]["name"] not in wb.sheetnames:
+                return []
+            
+            ws = wb[RESULTS_SHEETS["answers"]["name"]]
+            answers = []
+            
+            # Leer datos de respuestas
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and len(row) >= len(ANSWERS_COLUMNS) and row[0] == evaluation_id:
+                    answer_data = {}
+                    for col_name, col_letter in ANSWERS_COLUMNS.items():
+                        col_index = self._get_col_index(col_letter)
+                        if col_index < len(row):
+                            answer_data[col_name] = row[col_index]
+                    answers.append(answer_data)
+            
+            wb.close()
+            return sorted(answers, key=lambda x: x.get("question_id", 0))
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo respuestas de evaluación: {e}")
+            return []
+    
+    async def get_evaluation_applied_knowledge(self, evaluation_id: str) -> Optional[Dict[str, Any]]:
+        """Obtener datos de conocimiento aplicado de una evaluación"""
+        try:
+            if not self.results_file.exists():
+                return None
+            
+            wb = load_workbook(self.results_file, data_only=True)
+            
+            if RESULTS_SHEETS["applied_knowledge"]["name"] not in wb.sheetnames:
+                return None
+            
+            ws = wb[RESULTS_SHEETS["applied_knowledge"]["name"]]
+            
+            # Buscar fila con el evaluation_id
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and len(row) >= len(APPLIED_KNOWLEDGE_COLUMNS) and row[0] == evaluation_id:
+                    applied_data = {}
+                    for col_name, col_letter in APPLIED_KNOWLEDGE_COLUMNS.items():
+                        col_index = self._get_col_index(col_letter)
+                        if col_index < len(row):
+                            applied_data[col_name] = row[col_index]
+                    wb.close()
+                    return applied_data
+            
+            wb.close()
+            return None
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo conocimiento aplicado: {e}")
+            return None
+    
+    async def get_evaluation_feedback(self, evaluation_id: str) -> Optional[Dict[str, Any]]:
+        """Obtener datos de feedback de una evaluación"""
+        try:
+            if not self.results_file.exists():
+                return None
+            
+            wb = load_workbook(self.results_file, data_only=True)
+            
+            if RESULTS_SHEETS["feedback"]["name"] not in wb.sheetnames:
+                return None
+            
+            ws = wb[RESULTS_SHEETS["feedback"]["name"]]
+            
+            # Buscar fila con el evaluation_id
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and len(row) >= len(FEEDBACK_COLUMNS) and row[0] == evaluation_id:
+                    feedback_data = {}
+                    for col_name, col_letter in FEEDBACK_COLUMNS.items():
+                        col_index = self._get_col_index(col_letter)
+                        if col_index < len(row):
+                            feedback_data[col_name] = row[col_index]
+                    wb.close()
+                    return feedback_data
+            
+            wb.close()
+            return None
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo feedback: {e}")
+            return None
     
     # =================================================================
     # FUNCIONES AUXILIARES

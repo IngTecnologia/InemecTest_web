@@ -112,16 +112,21 @@ EVALUATIONS_COLUMNS = {
     "completed_at": "M"      # Fecha/hora de finalización
 }
 
-# Columnas para hoja de Respuestas
+# Columnas para hoja de Respuestas - EXPANDIDA para capturar orden exacto
 ANSWERS_COLUMNS = {
     "evaluation_id": "A",     # ID de la evaluación
     "question_id": "B",       # Número de pregunta (1, 2, 3, etc.)
     "question_text": "C",    # Texto de la pregunta
-    "selected_option": "D",   # Opción seleccionada (A, B, C, D)
-    "selected_text": "E",    # Texto de la opción seleccionada
-    "correct_option": "F",    # Opción correcta
-    "correct_text": "G",     # Texto de la opción correcta
-    "is_correct": "H"        # Si la respuesta fue correcta
+    "option_a_text": "D",    # Texto de opción A como se mostró
+    "option_b_text": "E",    # Texto de opción B como se mostró
+    "option_c_text": "F",    # Texto de opción C como se mostró
+    "option_d_text": "G",    # Texto de opción D como se mostró
+    "selected_option": "H",   # Opción seleccionada (A, B, C, D)
+    "selected_text": "I",    # Texto de la opción seleccionada
+    "correct_option": "J",    # Opción correcta original (antes de randomizar)
+    "correct_text": "K",     # Texto de la opción correcta original
+    "correct_option_displayed": "L",  # Opción correcta como se mostró (A, B, C, D)
+    "is_correct": "M"        # Si la respuesta fue correcta
 }
 
 # Columnas para hoja de Conocimiento Aplicado

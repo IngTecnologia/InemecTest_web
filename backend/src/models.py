@@ -75,10 +75,19 @@ class UserData(BaseModel):
     cargo: str = Field(..., min_length=1, description="Cargo del evaluado")
     campo: CampoEnum = Field(..., description="Campo de trabajo")
 
+class DisplayOrder(BaseModel):
+    """Orden de opciones como se mostró al usuario"""
+    question_text: str = Field(..., description="Texto de la pregunta")
+    option_a_text: str = Field(..., description="Texto mostrado en posición A")
+    option_b_text: str = Field(..., description="Texto mostrado en posición B")
+    option_c_text: str = Field(..., description="Texto mostrado en posición C")
+    option_d_text: str = Field(..., description="Texto mostrado en posición D")
+
 class KnowledgeAnswer(BaseModel):
     """Respuesta a una pregunta de conocimiento"""
     question_id: int = Field(..., description="ID de la pregunta")
     selected_option: OptionEnum = Field(..., description="Opción seleccionada (A, B, C, D)")
+    display_order: Optional[DisplayOrder] = Field(None, description="Orden exacto como se mostró")
 
 class AppliedKnowledgeData(BaseModel):
     """Datos de evaluación de conocimiento aplicado"""

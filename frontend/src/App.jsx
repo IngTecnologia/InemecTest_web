@@ -6,6 +6,7 @@ import AdminOverviewPage from './pages/AdminOverviewPage.jsx'
 import AdminQueuePage from './pages/AdminQueuePage.jsx'
 import AdminMonitorPage from './pages/AdminMonitorPage.jsx'
 import AdminConfigPage from './pages/AdminConfigPage.jsx'
+import AdminEvaluationsPage from './pages/AdminEvaluationsPage.jsx'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="queue" element={<AdminQueuePage />} />
         <Route path="monitor" element={<AdminMonitorPage />} />
         <Route path="config" element={<AdminConfigPage />} />
+        <Route path="evaluations" element={<AdminEvaluationsPage />} />
       </Route>
     </Routes>
   )

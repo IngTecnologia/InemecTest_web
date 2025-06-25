@@ -19,6 +19,8 @@ const EvaluationForm = () => {
   
   // NUEVO: Mapeo de opciones randomizadas a originales
   const [optionMappings, setOptionMappings] = useState({})
+  // NUEVO: Guardar orden exacto de opciones mostradas
+  const [questionsDisplayOrder, setQuestionsDisplayOrder] = useState({})
   
   const [formData, setFormData] = useState({
     // Datos del usuario
@@ -163,10 +165,20 @@ const EvaluationForm = () => {
       
       // Guardar los mapeos para usar al enviar respuestas
       const mappings = {}
+      const displayOrder = {}
       processedQuestions.forEach(q => {
         mappings[q.id] = q.optionMapping
+        // Guardar el orden exacto como se muestra al usuario
+        displayOrder[q.id] = {
+          question_text: q.question,
+          option_a_text: q.options[0],
+          option_b_text: q.options[1],
+          option_c_text: q.options[2],
+          option_d_text: q.options[3]
+        }
       })
       setOptionMappings(mappings)
+      setQuestionsDisplayOrder(displayOrder)
       
     } catch (error) {
       console.error('Error cargando preguntas:', error)
@@ -249,7 +261,8 @@ const EvaluationForm = () => {
         procedure_codigo: formData.procedure_codigo,
         knowledge_answers: Object.entries(formData.answers).map(([questionId, selectedPosition]) => ({
           question_id: parseInt(questionId),
-          selected_option: selectedPosition // Enviamos la posición visual (A, B, C, D)
+          selected_option: selectedPosition, // Posición visual seleccionada (A, B, C, D)
+          display_order: questionsDisplayOrder[questionId] || {} // Orden completo como se mostró
         })),
         applied_knowledge: formData.applied,
         feedback: formData.feedback
@@ -298,6 +311,7 @@ const EvaluationForm = () => {
       setQuestions([])
       setSearchTerm('')
       setOptionMappings({})
+      setQuestionsDisplayOrder({})
       
     } catch (error) {
       console.error('Error enviando evaluación:', error)

@@ -996,6 +996,190 @@ async def get_generation_results():
         )
 
 # =============================================================================
+# ENDPOINTS DE GESTIÓN DE PRUEBAS PRESENTADAS
+# =============================================================================
+
+@admin_router.get("/evaluations/stats")
+async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_session)):
+    """Obtener estadísticas de evaluaciones presentadas"""
+    try:
+        from ..excel_handler import ExcelHandler
+        
+        excel_handler = ExcelHandler()
+        evaluations = await excel_handler.get_all_evaluations()
+        
+        if not evaluations:
+            return AdminResponse(
+                success=True,
+                message="No hay evaluaciones registradas",
+                data={
+                    "total_evaluations": 0,
+                    "by_campo": {},
+                    "by_disciplina": {},
+                    "approval_rate": 0,
+                    "recent_evaluations": []
+                }
+            )
+        
+        # Estadísticas por campo
+        stats_by_campo = {}
+        stats_by_disciplina = {}
+        approved_count = 0
+        
+        for eval_data in evaluations:
+            campo = eval_data.get("campo", "Sin campo")
+            stats_by_campo[campo] = stats_by_campo.get(campo, 0) + 1
+            
+            # Para disciplina necesitamos obtener info del procedimiento
+            # Por ahora usamos una aproximación
+            disciplina = "General"  # TODO: obtener desde procedimiento
+            stats_by_disciplina[disciplina] = stats_by_disciplina.get(disciplina, 0) + 1
+            
+            if eval_data.get("aprobo") == "Sí":
+                approved_count += 1
+        
+        approval_rate = (approved_count / len(evaluations)) * 100 if evaluations else 0
+        
+        # Evaluaciones recientes (últimas 10)
+        recent_evaluations = sorted(
+            evaluations, 
+            key=lambda x: x.get("completed_at", ""), 
+            reverse=True
+        )[:10]
+        
+        return AdminResponse(
+            success=True,
+            message="Estadísticas obtenidas exitosamente",
+            data={
+                "total_evaluations": len(evaluations),
+                "by_campo": stats_by_campo,
+                "by_disciplina": stats_by_disciplina,
+                "approval_rate": round(approval_rate, 2),
+                "approved_count": approved_count,
+                "failed_count": len(evaluations) - approved_count,
+                "recent_evaluations": recent_evaluations
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo estadísticas de evaluaciones: {str(e)}"
+        )
+
+@admin_router.get("/evaluations/search")
+async def search_evaluations(
+    cedula: str = Query(None, description="Búsqueda por cédula"),
+    campo: str = Query(None, description="Filtro por campo"),
+    procedure_codigo: str = Query(None, description="Filtro por código de procedimiento"),
+    limit: int = Query(50, description="Límite de resultados"),
+    current_user: Dict = Depends(verify_admin_session)
+):
+    """Buscar evaluaciones con filtros"""
+    try:
+        from ..excel_handler import ExcelHandler
+        
+        excel_handler = ExcelHandler()
+        evaluations = await excel_handler.get_all_evaluations()
+        
+        # Aplicar filtros
+        filtered_evaluations = evaluations
+        
+        if cedula:
+            filtered_evaluations = [
+                e for e in filtered_evaluations 
+                if cedula.lower() in e.get("cedula", "").lower()
+            ]
+        
+        if campo:
+            filtered_evaluations = [
+                e for e in filtered_evaluations 
+                if e.get("campo", "").lower() == campo.lower()
+            ]
+        
+        if procedure_codigo:
+            filtered_evaluations = [
+                e for e in filtered_evaluations 
+                if procedure_codigo.lower() in e.get("procedure_codigo", "").lower()
+            ]
+        
+        # Ordenar por fecha más reciente
+        filtered_evaluations = sorted(
+            filtered_evaluations,
+            key=lambda x: x.get("completed_at", ""),
+            reverse=True
+        )
+        
+        # Aplicar límite
+        result = filtered_evaluations[:limit]
+        
+        return AdminResponse(
+            success=True,
+            message=f"Se encontraron {len(result)} evaluaciones",
+            data={
+                "evaluations": result,
+                "total_found": len(filtered_evaluations),
+                "total_returned": len(result),
+                "filters_applied": {
+                    "cedula": cedula,
+                    "campo": campo,
+                    "procedure_codigo": procedure_codigo
+                }
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error buscando evaluaciones: {str(e)}"
+        )
+
+@admin_router.get("/evaluations/{evaluation_id}/report")
+async def get_evaluation_report(
+    evaluation_id: str,
+    current_user: Dict = Depends(verify_admin_session)
+):
+    """Obtener reporte completo de una evaluación específica"""
+    try:
+        from ..excel_handler import ExcelHandler
+        
+        excel_handler = ExcelHandler()
+        
+        # Obtener datos principales de la evaluación
+        evaluation_data = await excel_handler.get_evaluation_by_id(evaluation_id)
+        if not evaluation_data:
+            raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+        
+        # Obtener respuestas detalladas
+        answers = await excel_handler.get_evaluation_answers(evaluation_id)
+        
+        # Obtener conocimiento aplicado
+        applied_knowledge = await excel_handler.get_evaluation_applied_knowledge(evaluation_id)
+        
+        # Obtener feedback
+        feedback = await excel_handler.get_evaluation_feedback(evaluation_id)
+        
+        return AdminResponse(
+            success=True,
+            message="Reporte completo obtenido",
+            data={
+                "evaluation": evaluation_data,
+                "answers": answers,
+                "applied_knowledge": applied_knowledge,
+                "feedback": feedback,
+                "report_generated_at": datetime.now().isoformat()
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo reporte de evaluación: {str(e)}"
+        )
+
+# =============================================================================
 # ENDPOINTS DE UTILIDAD Y TESTING
 # =============================================================================
 
