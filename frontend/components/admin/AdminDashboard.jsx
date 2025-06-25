@@ -33,8 +33,13 @@ const AdminDashboard = () => {
   const handleScanProcedures = async () => {
     try {
       setIsScanning(true)
-      await scanProcedures()
-      addNotification('✅ Escaneo completado exitosamente', 'success')
+      const startTime = Date.now()
+      const result = await scanProcedures()
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+      
+      // Mostrar estadísticas de escaneo optimizado
+      const stats = `${result.archivos_encontrados} archivos, ${result.procedimientos_nuevos} nuevos`
+      addNotification(`🚀 Escaneo optimizado completado en ${duration}s - ${stats}`, 'success')
     } catch (error) {
       addNotification(`❌ Error en escaneo: ${error.message}`, 'error')
     } finally {
@@ -155,7 +160,7 @@ const AdminDashboard = () => {
           onClick={handleScanProcedures}
           disabled={isScanning}
         >
-          {isScanning ? '⏳' : '🔍'} Escanear Procedimientos
+          {isScanning ? '⚡ Escaneando...' : '🚀 Escaneo Optimizado'} {queue?.total_procedimientos > 0 && `(${queue.total_procedimientos})`}
         </button>
         
         <button 

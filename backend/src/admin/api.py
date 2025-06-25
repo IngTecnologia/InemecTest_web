@@ -174,10 +174,16 @@ async def toggle_debug_mode(enable: bool = Query(..., description="Habilitar/des
 
 @admin_router.post("/scan", response_model=ScanResult)
 async def scan_procedures():
-    """Escanear directorio de procedimientos y actualizar cola"""
+    """Escanear directorio de procedimientos y actualizar cola (OPTIMIZADO)"""
     try:
+        import time
+        start_time = time.time()
+        
         scanner = get_scanner()
         resultado = scanner.escanear_directorio()
+        
+        scan_duration = time.time() - start_time
+        print(f"🚀 [PERFORMANCE] Escaneo completado en {scan_duration:.2f} segundos")
         
         print(f"🔍 Debug - Resultado scanner: {resultado.keys()}")
         
@@ -210,14 +216,15 @@ async def scan_procedures():
         
         return ScanResult(
             success=resultado["success"],
-            message=resultado["message"],
+            message=f"{resultado['message']} (procesado en {scan_duration:.1f}s)",
             archivos_encontrados=resultado["archivos_encontrados"],
             procedimientos_nuevos=resultado.get("procedimientos_nuevos", 0),
             procedimientos_ya_procesados=resultado.get("procedimientos_ya_procesados", 0),
             total_procedimientos=resultado.get("total_procedimientos", len(queue_items)),
             cola_generacion=queue_items,
             tracking_file=str(scanner.tracking_file),
-            timestamp=get_current_timestamp()
+            timestamp=get_current_timestamp(),
+            scan_duration=scan_duration
         )
         
     except Exception as e:

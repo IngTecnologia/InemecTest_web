@@ -91,8 +91,13 @@ const ProcedureQueue = () => {
   const handleScan = async () => {
     try {
       setIsScanning(true)
-      await scanProcedures()
-      addNotification('✅ Escaneo completado', 'success')
+      const startTime = Date.now()
+      const result = await scanProcedures()
+      const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+      
+      // Mostrar estadísticas de escaneo optimizado
+      const stats = `${result.archivos_encontrados} archivos procesados`
+      addNotification(`🚀 Escaneo optimizado: ${duration}s - ${stats}`, 'success')
       setSelectedItems(new Set()) // Limpiar selección
     } catch (error) {
       addNotification(`❌ Error en escaneo: ${error.message}`, 'error')
@@ -302,7 +307,7 @@ const ProcedureQueue = () => {
             onClick={handleScan}
             disabled={isScanning}
           >
-            {isScanning ? '⏳ Escaneando...' : '🔍 Escanear'}
+            {isScanning ? '⚡ Escaneando...' : '🚀 Escaneo Rápido'} {queue?.total_procedimientos > 0 && `(${queue.total_procedimientos})`}
           </button>
           <button onClick={refresh} disabled={loading}>
             🔄 Actualizar

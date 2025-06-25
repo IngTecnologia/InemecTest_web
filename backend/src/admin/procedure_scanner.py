@@ -9,6 +9,9 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import lru_cache
+import hashlib
 from docx import Document
 import pandas as pd
 from .utils import create_tracking_key
@@ -28,12 +31,13 @@ class ProcedureScanner:
     y determina cuáles necesitan generación de preguntas
     """
     
-    def __init__(self, procedures_source_dir: str | None = None):
+    def __init__(self, procedures_source_dir: str | None = None, max_workers: int = 4):
         """
         Inicializar scanner
         
         Args:
             procedures_source_dir: Directorio donde están los archivos .docx de procedimientos
+            max_workers: Número máximo de hilos para procesamiento paralelo
         """
 
         if procedures_source_dir is None:
@@ -41,6 +45,8 @@ class ProcedureScanner:
         self.procedures_source_dir = Path(procedures_source_dir)
         self.excel_file = get_data_file_path()
         self.tracking_file = get_admin_file_path("tracking")
+        self.cache_file = get_admin_file_path("metadata_cache")
+        self.max_workers = max_workers
         
         # Crear directorios si no existen
         ensure_data_directory()
@@ -50,6 +56,8 @@ class ProcedureScanner:
         print(f"   - Directorio fuente: {self.procedures_source_dir}")
         print(f"   - Archivo Excel: {self.excel_file}")
         print(f"   - Tracking file: {self.tracking_file}")
+        print(f"   - Cache file: {self.cache_file}")
+        print(f"   - Max workers: {self.max_workers}")
     
     def extraer_datos_encabezado(self, document: Document) -> Dict[str, Any]:
         """
@@ -406,24 +414,21 @@ class ProcedureScanner:
     
     def escanear_directorio(self) -> Dict[str, Any]:
         """
-        Escanear directorio de procedimientos y detectar cambios
+        Escanear directorio de procedimientos y detectar cambios (VERSIÓN OPTIMIZADA)
         """
-        print(f"🔍 [DEBUG] Escaneando directorio: {self.procedures_source_dir}")
-        print(f"🔍 [DEBUG] Directorio existe: {self.procedures_source_dir.exists()}")
-        print(f"🔍 [DEBUG] Directorio absoluto: {self.procedures_source_dir.absolute()}")
+        print(f"🚀 [OPTIMIZED] Escaneando directorio: {self.procedures_source_dir}")
+        print(f"🚀 [OPTIMIZED] Usando {self.max_workers} hilos para procesamiento paralelo")
         
-        # Cargar tracking data
+        # Cargar tracking data y cache
         try:
             tracking_data = self.cargar_tracking_data()
-            print(f"🔍 [DEBUG] Tracking data cargado: {len(tracking_data.get('generated_questions', {}))} items")
-            print(f"🔍 [DEBUG] Tracking keys: {list(tracking_data.keys())}")
+            cache = self.cargar_metadata_cache()
+            print(f"🔍 [DEBUG] Tracking data: {len(tracking_data.get('generated_questions', {}))} items")
+            print(f"💾 [DEBUG] Cache entries: {len(cache)} items")
         except Exception as e:
-            print(f"❌ [DEBUG] Error cargando tracking: {e}")
+            print(f"❌ [DEBUG] Error cargando datos: {e}")
             tracking_data = {"generated_questions": {}, "last_scan": None, "scan_history": []}
-        
-        # Escanear archivos .docx
-        archivos_encontrados = []
-        procedimientos_escaneados = []
+            cache = {}
         
         if not self.procedures_source_dir.exists():
             print(f"❌ [DEBUG] Directorio no existe: {self.procedures_source_dir}")
@@ -437,27 +442,42 @@ class ProcedureScanner:
             }
         
         try:
-            print(f"🔍 [DEBUG] Buscando archivos *.docx en: {self.procedures_source_dir}")
-            docx_files = list(self.procedures_source_dir.glob("*.docx"))
-            print(f"🔍 [DEBUG] Archivos encontrados (antes de filtrar): {len(docx_files)}")
+            # Encontrar archivos .docx válidos
+            print(f"🔍 [DEBUG] Buscando archivos *.docx...")
+            docx_files = [
+                archivo for archivo in self.procedures_source_dir.glob("*.docx")
+                if not archivo.name.startswith("~$")  # Filtrar archivos temporales
+            ]
+            print(f"📄 [DEBUG] Archivos válidos encontrados: {len(docx_files)}")
             
-            for archivo in docx_files:
-                if archivo.name.startswith("~$"):  # Ignorar archivos temporales de Word
-                    print(f"🔍 [DEBUG] Ignorando archivo temporal: {archivo.name}")
-                    continue
-                    
-                print(f"🔍 [DEBUG] Procesando archivo: {archivo.name}")
-                archivos_encontrados.append(archivo.name)
-                
-                # Procesar documento
-                try:
-                    datos_procedimiento = self.procesar_documento(archivo)
-                    procedimientos_escaneados.append(datos_procedimiento)
-                    print(f"🔍 [DEBUG] Archivo procesado exitosamente: {datos_procedimiento.get('codigo', 'UNKNOWN')}")
-                except Exception as proc_error:
-                    print(f"❌ [DEBUG] Error procesando {archivo.name}: {proc_error}")
-                    # Continuar con el siguiente archivo
-                    continue
+            if not docx_files:
+                print(f"⚠️ No se encontraron archivos .docx válidos")
+                return {
+                    "success": True,
+                    "message": "No se encontraron archivos .docx",
+                    "archivos_encontrados": 0,
+                    "procedimientos_nuevos": 0,
+                    "procedimientos_actualizados": 0,
+                    "cola_generacion": []
+                }
+            
+            # Procesar archivos en lotes paralelos
+            batch_size = max(10, len(docx_files) // self.max_workers)
+            batches = [docx_files[i:i + batch_size] for i in range(0, len(docx_files), batch_size)]
+            
+            print(f"🔄 [PROCESSING] Procesando {len(docx_files)} archivos en {len(batches)} lotes")
+            
+            procedimientos_escaneados = []
+            
+            for i, batch in enumerate(batches, 1):
+                print(f"📦 [BATCH {i}/{len(batches)}] Procesando {len(batch)} archivos...")
+                resultados_batch = self.procesar_lote_archivos(batch, cache)
+                procedimientos_escaneados.extend(resultados_batch)
+                print(f"✅ [BATCH {i}/{len(batches)}] Completados {len(resultados_batch)} archivos")
+            
+            # Guardar cache actualizado
+            self.guardar_metadata_cache(cache)
+            print(f"💾 Cache actualizado con {len(cache)} entradas")
         
         except Exception as scan_error:
             print(f"❌ [DEBUG] Error escaneando directorio: {scan_error}")
@@ -469,6 +489,8 @@ class ProcedureScanner:
                 "procedimientos_actualizados": 0,
                 "cola_generacion": []
             }
+            
+        archivos_encontrados = [proc["archivo"] for proc in procedimientos_escaneados]
         
         print(f"📄 [DEBUG] Archivos .docx válidos encontrados: {len(archivos_encontrados)}")
         print(f"📄 [DEBUG] Procedimientos procesados: {len(procedimientos_escaneados)}")
@@ -562,6 +584,98 @@ class ProcedureScanner:
         
         return resultado
     
+    def _get_file_hash(self, file_path: Path) -> str:
+        """Obtener hash del archivo basado en su ruta y fecha de modificación"""
+        try:
+            stat = file_path.stat()
+            content = f"{file_path.name}_{stat.st_mtime}_{stat.st_size}"
+            return hashlib.md5(content.encode()).hexdigest()
+        except:
+            return hashlib.md5(str(file_path).encode()).hexdigest()
+    
+    def cargar_metadata_cache(self) -> Dict[str, Dict[str, Any]]:
+        """Cargar cache de metadatos de archivos"""
+        if self.cache_file.exists():
+            try:
+                with open(self.cache_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"⚠️ Error cargando cache: {e}")
+        return {}
+    
+    def guardar_metadata_cache(self, cache: Dict[str, Dict[str, Any]]):
+        """Guardar cache de metadatos"""
+        try:
+            with open(self.cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"❌ Error guardando cache: {e}")
+    
+    def procesar_documento_con_cache(self, ruta_archivo: Path, cache: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Procesar documento usando cache si está disponible"""
+        file_hash = self._get_file_hash(ruta_archivo)
+        
+        # Verificar si está en cache y es válido
+        if file_hash in cache:
+            cached_data = cache[file_hash]
+            if cached_data.get('archivo') == ruta_archivo.name:
+                print(f"💾 [CACHE HIT] {ruta_archivo.name}")
+                return cached_data
+        
+        # Procesar documento
+        print(f"🔄 [PROCESSING] {ruta_archivo.name}")
+        datos = self.procesar_documento(ruta_archivo)
+        
+        # Guardar en cache
+        cache[file_hash] = datos
+        
+        return datos
+    
+    def procesar_lote_archivos(self, archivos: List[Path], cache: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Procesar un lote de archivos en paralelo"""
+        resultados = []
+        
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Enviar tareas
+            future_to_archivo = {
+                executor.submit(self.procesar_documento_con_cache, archivo, cache): archivo 
+                for archivo in archivos
+            }
+            
+            # Recoger resultados
+            for future in as_completed(future_to_archivo):
+                archivo = future_to_archivo[future]
+                try:
+                    resultado = future.result()
+                    resultados.append(resultado)
+                    print(f"✅ Completado: {archivo.name}")
+                except Exception as e:
+                    print(f"❌ Error procesando {archivo.name}: {e}")
+                    # Crear resultado de error
+                    codigo_fallback, version_fallback = extract_procedure_code_and_version(archivo.name)
+                    codigo_fallback = self._limpiar_codigo(codigo_fallback)
+                    resultado_error = {
+                        "codigo": codigo_fallback,
+                        "version": str(version_fallback),
+                        "nombre": f"ERROR: {archivo.name}",
+                        "alcance": "",
+                        "objetivo": "",
+                        "archivo": archivo.name,
+                        "ruta_completa": str(archivo),
+                        "error": str(e),
+                        "fecha_escaneado": datetime.now().isoformat(),
+                        "edicion": "",
+                        "disciplina": "",
+                        "recursos_requeridos": "",
+                        "elementos_proteccion": "",
+                        "descripcion_actividades": "",
+                        "tipo_procedimiento": "",
+                        "campo": ""
+                    }
+                    resultados.append(resultado_error)
+        
+        return resultados
+    
     def get_generation_queue(self) -> List[Dict[str, Any]]:
         """
         Obtener cola actual de generación
@@ -636,7 +750,7 @@ class ProcedureScanner:
 # FUNCIONES DE UTILIDAD
 # =============================================================================
 
-def crear_scanner(procedures_dir: str = None) -> ProcedureScanner:
+def crear_scanner(procedures_dir: str = None, max_workers: int = None) -> ProcedureScanner:
     """
     Crear instancia del scanner con configuración por defecto
     """
@@ -646,7 +760,12 @@ def crear_scanner(procedures_dir: str = None) -> ProcedureScanner:
             str(get_admin_directory_path("procedures_source"))
         )
     
-    return ProcedureScanner(procedures_dir)
+    if max_workers is None:
+        # Determinar número óptimo de workers basado en CPU y archivos
+        import multiprocessing
+        max_workers = min(8, max(2, multiprocessing.cpu_count() // 2))
+    
+    return ProcedureScanner(procedures_dir, max_workers)
 
 def escanear_procedimientos_rapido(procedures_dir: str = None) -> Dict[str, Any]:
     """

@@ -94,7 +94,7 @@ class QueueItem(BaseModel):
     puede_regenerar: bool = Field(False, description="Si se puede regenerar preguntas (botón Regenerar)")
 
 class ScanResult(BaseModel):
-    """Resultado de un escaneo de directorio"""
+    """Resultado de un escaneo de directorio (OPTIMIZADO)"""
     success: bool = Field(..., description="Si el escaneo fue exitoso")
     message: str = Field(..., description="Mensaje del resultado")
     archivos_encontrados: int = Field(..., description="Número de archivos encontrados")
@@ -104,6 +104,9 @@ class ScanResult(BaseModel):
     cola_generacion: List[QueueItem] = Field(..., description="Items en cola de generación")
     tracking_file: str = Field(..., description="Ruta del archivo de tracking")
     timestamp: str = Field(..., description="Timestamp del escaneo")
+    scan_duration: Optional[float] = Field(None, description="Duración del escaneo en segundos")
+    cache_hits: Optional[int] = Field(None, description="Número de archivos servidos desde cache")
+    parallel_workers: Optional[int] = Field(None, description="Número de workers usados en paralelo")
 
 # =============================================================================
 # MODELOS DE PREGUNTAS EN PROCESO
