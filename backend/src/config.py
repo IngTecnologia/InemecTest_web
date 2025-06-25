@@ -11,7 +11,12 @@ from typing import Dict, Any, List
 # CONFIGURACIÓN DE ARCHIVOS EXCEL
 # =============================================================================
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+# Detectar si estamos en Docker o desarrollo
+if os.getenv("ENVIRONMENT") == "production" or os.path.exists("/app"):
+    BASE_DIR = Path("/app")
+else:
+    BASE_DIR = Path(__file__).resolve().parents[1]
+
 DATA_DIR = BASE_DIR / "data"
 
 # Rutas de archivos Excel
@@ -162,7 +167,7 @@ API_CONFIG = {
     "version": "2.0.0",
     "host": "0.0.0.0",
     "port": 8000,
-    "cors_origins": ["*"],  # En producción, especificar dominios exactos
+    "cors_origins": ["*"],  # Permitir todos los orígenes para acceso remoto
     "upload_folder": "uploads/",
     "temp_folder": "temp/"
 }

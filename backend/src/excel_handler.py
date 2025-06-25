@@ -47,6 +47,9 @@ class ExcelHandler:
     async def get_all_procedures(self) -> List[Dict[str, Any]]:
         """Obtener todos los procedimientos desde Excel"""
         try:
+            print(f"🔍 [DEBUG] Buscando archivo de datos en: {self.data_file}")
+            print(f"🔍 [DEBUG] Archivo existe: {self.data_file.exists()}")
+            
             if not self.data_file.exists():
                 print(f"⚠️ Archivo de datos no encontrado: {self.data_file}")
                 return []

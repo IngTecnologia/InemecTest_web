@@ -2,7 +2,7 @@
  * API service para el módulo administrativo de InemecTest
  */
 
-const API_BASE_URL = 'http://localhost:8000/api/v1/admin'
+const API_BASE_URL = '/api/v1/admin'
 
 class AdminApiService {
   // =============================================================================
