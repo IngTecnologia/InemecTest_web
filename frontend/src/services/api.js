@@ -33,13 +33,13 @@ class AdminApiService {
   }
 
   async getConfig() {
-    const response = await fetch(`${API_BASE_URL}/config`)
+    const response = await this.authenticatedFetch(`${API_BASE_URL}/config`)
     if (!response.ok) throw new Error('Error obteniendo configuración')
     return response.json()
   }
 
   async toggleDebugMode(enable) {
-    const response = await fetch(`${API_BASE_URL}/config/debug?enable=${enable}`, {
+    const response = await this.authenticatedFetch(`${API_BASE_URL}/config/debug?enable=${enable}`, {
       method: 'POST'
     })
     if (!response.ok) throw new Error('Error configurando modo debug')
@@ -47,7 +47,7 @@ class AdminApiService {
   }
 
   async healthCheck() {
-    const response = await fetch(`${API_BASE_URL}/health`)
+    const response = await this.authenticatedFetch(`${API_BASE_URL}/health`)
     if (!response.ok) throw new Error('Error en health check')
     return response.json()
   }

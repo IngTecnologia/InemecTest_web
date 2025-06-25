@@ -28,7 +28,7 @@ function App() {
         <Route path="queue" element={<AdminQueuePage />} />
         <Route path="monitor" element={<AdminMonitorPage />} />
         <Route path="config" element={<AdminConfigPage />} />
-        <Route path="evaluations" element={<AdminEvaluationsPageDebug />} />
+        <Route path="evaluations" element={<AdminEvaluationsPage />} />
       </Route>
     </Routes>
   )
