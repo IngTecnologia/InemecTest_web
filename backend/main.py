@@ -2,12 +2,13 @@
 Aplicación principal InemecTest - Versión simplificada basada en Excel
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import os
 from pathlib import Path
 from datetime import datetime
+import logging
 
 # Importar módulos locales
 from src.config import API_CONFIG, validate_config, ensure_data_directory
@@ -31,12 +32,29 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Middleware para logging de requests
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = datetime.now()
+    logger.info(f"🌐 {request.method} {request.url} - Cliente: {request.client.host}")
+    
+    response = await call_next(request)
+    
+    process_time = (datetime.now() - start_time).total_seconds()
+    logger.info(f"✅ {request.method} {request.url} - Status: {response.status_code} - Tiempo: {process_time:.2f}s")
+    
+    return response
+
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=API_CONFIG["cors_origins"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
