@@ -400,7 +400,7 @@ const EvaluationsManagerEnhanced = () => {
               >
                 <option value="">Todos</option>
                 <option value="Sí">Sí (≥80%)</option>
-                <option value="No">No (<80%)</option>
+                <option value="No">No (&lt;80%)</option>
               </select>
             </div>
 
