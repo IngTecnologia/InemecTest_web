@@ -6,6 +6,7 @@ const EvaluationForm = () => {
   const [error, setError] = useState('')
   const [isCompleted, setIsCompleted] = useState(false)
   const [evaluationResult, setEvaluationResult] = useState(null)
+  const [sessionId, setSessionId] = useState(null)
   const [procedures, setProcedures] = useState([])
   const [filteredProcedures, setFilteredProcedures] = useState([])
   const [selectedProcedure, setSelectedProcedure] = useState(null)
@@ -145,6 +146,7 @@ const EvaluationForm = () => {
       
       const data = await response.json()
       setSelectedProcedure(data.procedure)
+      setSessionId(data.session_id)
       
       // IMPORTANTE: Procesar las preguntas y crear mapeo de opciones
       const processedQuestions = data.questions.map(question => {
@@ -252,6 +254,10 @@ const EvaluationForm = () => {
     try {
       setLoading(true)
       
+      if (!sessionId) {
+        throw new Error('ID de sesión no encontrado. Por favor, recargue las preguntas.')
+      }
+      
       // Preparar datos para envío
       const evaluationData = {
         user_data: {
@@ -261,6 +267,7 @@ const EvaluationForm = () => {
           campo: formData.campo
         },
         procedure_codigo: formData.procedure_codigo,
+        session_id: sessionId,
         knowledge_answers: Object.entries(formData.answers).map(([questionId, selectedPosition]) => {
           const displayOrder = questionsDisplayOrder[questionId]
           const answer = {
@@ -369,6 +376,7 @@ const EvaluationForm = () => {
       setSearchTerm('')
       setOptionMappings({})
       setQuestionsDisplayOrder({})
+      setSessionId(null)
       
     } catch (error) {
       console.error('Error enviando evaluación:', error)
@@ -529,6 +537,7 @@ const EvaluationForm = () => {
           setIsCompleted(false)
           setEvaluationResult(null)
           setCurrentStep(1)
+          setSessionId(null)
         }}
         style={{ 
           padding: '1rem 2rem',

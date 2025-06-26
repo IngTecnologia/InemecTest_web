@@ -63,6 +63,7 @@ class ProcedureWithQuestions(BaseModel):
     """Procedimiento con sus preguntas randomizadas"""
     procedure: Procedure
     questions: List[QuestionForUser]
+    session_id: str = Field(..., description="ID único de sesión para mapear respuestas")
 
 # =============================================================================
 # MODELOS DE EVALUACIÓN - INPUT
@@ -107,6 +108,7 @@ class EvaluationCreate(BaseModel):
     """Datos para crear una nueva evaluación"""
     user_data: UserData
     procedure_codigo: str = Field(..., description="Código del procedimiento")
+    session_id: str = Field(..., description="ID de sesión para mapear respuestas")
     knowledge_answers: List[KnowledgeAnswer]
     applied_knowledge: AppliedKnowledgeData
     feedback: FeedbackData

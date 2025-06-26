@@ -60,17 +60,17 @@ def randomize_question_options(question: dict) -> tuple[QuestionForUser, Dict[st
 # En producción, usar Redis o similar
 question_mappings_cache = {}
 
-def store_question_mappings(procedure_codigo: str, questions_data: List[dict], mappings: Dict[int, Dict[str, str]]):
-    """Guardar mapeos de preguntas para una evaluación"""
-    cache_key = f"{procedure_codigo}_mappings"
+def store_question_mappings(session_id: str, questions_data: List[dict], mappings: Dict[int, Dict[str, str]]):
+    """Guardar mapeos de preguntas para una evaluación con ID de sesión único"""
+    cache_key = f"session_{session_id}_mappings"
     question_mappings_cache[cache_key] = {
         "questions": questions_data,
         "mappings": mappings
     }
 
-def get_question_mappings(procedure_codigo: str) -> tuple[List[dict], Dict[int, Dict[str, str]]]:
-    """Obtener mapeos guardados"""
-    cache_key = f"{procedure_codigo}_mappings"
+def get_question_mappings(session_id: str) -> tuple[List[dict], Dict[int, Dict[str, str]]]:
+    """Obtener mapeos guardados por ID de sesión"""
+    cache_key = f"session_{session_id}_mappings"
     if cache_key in question_mappings_cache:
         data = question_mappings_cache[cache_key]
         return data["questions"], data["mappings"]
@@ -220,7 +220,7 @@ async def get_procedure_by_code(codigo: str):
         )
 
 @router.get("/procedures/{codigo}/questions")
-async def get_procedure_questions(codigo: str):
+async def get_procedure_questions(codigo: str, session_id: str = None):
     """Obtener preguntas de un procedimiento con opciones randomizadas"""
     try:
         # Verificar que existe el procedimiento
@@ -248,12 +248,18 @@ async def get_procedure_questions(codigo: str):
             randomized_questions.append(randomized_q)
             mappings[question["id"]] = mapping
         
+        # Generar ID de sesión único si no se proporciona
+        if not session_id:
+            import uuid
+            session_id = str(uuid.uuid4())
+        
         # Guardar mapeos en cache para usar al calificar
-        store_question_mappings(codigo, questions_data, mappings)
+        store_question_mappings(session_id, questions_data, mappings)
         
         return ProcedureWithQuestions(
             procedure=Procedure(**procedure_data),
-            questions=randomized_questions
+            questions=randomized_questions,
+            session_id=session_id
         )
         
     except HTTPException:
@@ -280,8 +286,8 @@ async def create_evaluation(evaluation_data: EvaluationCreate):
                 detail=f"Procedimiento {evaluation_data.procedure_codigo} no encontrado"
             )
         
-        # Obtener preguntas originales y mapeos guardados
-        questions_data, mappings = get_question_mappings(evaluation_data.procedure_codigo)
+        # Obtener preguntas originales y mapeos guardados usando session_id
+        questions_data, mappings = get_question_mappings(evaluation_data.session_id)
         
         # Si no hay mapeos en cache, obtener preguntas directamente
         if not questions_data or not mappings:
