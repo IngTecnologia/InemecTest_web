@@ -4,6 +4,7 @@ Integración completa con el workflow de generación de preguntas
 """
 
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, Depends, Header
+from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import os
@@ -44,17 +45,25 @@ class AdminLoginResponse(BaseModel):
 
 def verify_admin_session(authorization: str = Header(None)):
     """Middleware para verificar sesión de admin"""
+    print(f"🔍 [AUTH DEBUG] Authorization header: {authorization}")
+    print(f"🔍 [AUTH DEBUG] Active sessions: {list(active_sessions.keys())}")
+    
     if not authorization:
+        print(f"❌ [AUTH DEBUG] No authorization header")
         raise HTTPException(status_code=401, detail="No authorization header")
     
     if not authorization.startswith("Bearer "):
+        print(f"❌ [AUTH DEBUG] Invalid authorization format")
         raise HTTPException(status_code=401, detail="Invalid authorization format")
     
     token = authorization.replace("Bearer ", "")
+    print(f"🔍 [AUTH DEBUG] Extracted token: {token}")
     
     if token not in active_sessions:
+        print(f"❌ [AUTH DEBUG] Token not found in active sessions")
         raise HTTPException(status_code=401, detail="Invalid or expired session")
     
+    print(f"✅ [AUTH DEBUG] Token válido, usuario: {active_sessions[token].get('username', 'unknown')}")
     return active_sessions[token]
 
 @admin_router.post("/auth/login", response_model=AdminLoginResponse)
