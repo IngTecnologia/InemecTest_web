@@ -1055,7 +1055,8 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
         
         # Procesar estadísticas básicas
         stats_by_campo = {}
-        approved_count = 0
+        approved_conocimiento_count = 0
+        approved_aplicado_count = 0
         
         for eval_data in evaluations:
             # Procesar campo
@@ -1063,12 +1064,18 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
             if campo:
                 stats_by_campo[campo] = stats_by_campo.get(campo, 0) + 1
             
-            # Contar aprobados - manejar diferentes formatos posibles
-            aprobo = eval_data.get("aprobo", "")
-            if str(aprobo).lower() in ["sí", "si", "yes", "true", "1"]:
-                approved_count += 1
+            # Contar aprobados conocimiento (automático ≥80%)
+            aprobo_conocimiento = eval_data.get("aprobo_conocimiento", "")
+            if str(aprobo_conocimiento).lower() in ["sí", "si", "yes", "true", "1"]:
+                approved_conocimiento_count += 1
+                
+            # Contar aprobados conocimiento aplicado (manual supervisor)
+            aprobo_aplicado = eval_data.get("aprobo", "")
+            if str(aprobo_aplicado).lower() in ["sí", "si", "yes", "true", "1"]:
+                approved_aplicado_count += 1
         
-        approval_rate = (approved_count / len(evaluations)) * 100 if evaluations else 0
+        conocimiento_rate = (approved_conocimiento_count / len(evaluations)) * 100 if evaluations else 0
+        aplicado_rate = (approved_aplicado_count / len(evaluations)) * 100 if evaluations else 0
         
         # Preparar evaluaciones recientes de forma segura
         recent_evaluations = []
@@ -1085,7 +1092,9 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
                     "cedula": str(eval_data.get("cedula", "")),
                     "nombre": str(eval_data.get("nombre", "")),
                     "procedure_codigo": str(eval_data.get("procedure_codigo", "")),
-                    "aprobo": str(eval_data.get("aprobo", "")),
+                    "score_percentage": eval_data.get("score_percentage", 0),
+                    "aprobo_conocimiento": str(eval_data.get("aprobo_conocimiento", "")),
+                    "aprobo_aplicado": str(eval_data.get("aprobo", "")),
                     "completed_at": str(eval_data.get("completed_at", ""))
                 })
         except Exception as e:
@@ -1099,9 +1108,16 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
                 "total_evaluations": len(evaluations),
                 "by_campo": stats_by_campo,
                 "by_disciplina": {"General": len(evaluations)},  # Simplificado
-                "approval_rate": round(approval_rate, 2),
-                "approved_count": approved_count,
-                "failed_count": len(evaluations) - approved_count,
+                "conocimiento": {
+                    "approval_rate": round(conocimiento_rate, 2),
+                    "approved_count": approved_conocimiento_count,
+                    "failed_count": len(evaluations) - approved_conocimiento_count
+                },
+                "aplicado": {
+                    "approval_rate": round(aplicado_rate, 2),
+                    "approved_count": approved_aplicado_count,
+                    "failed_count": len(evaluations) - approved_aplicado_count
+                },
                 "recent_evaluations": recent_evaluations
             },
             "timestamp": datetime.now().isoformat()

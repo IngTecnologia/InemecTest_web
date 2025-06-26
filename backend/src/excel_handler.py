@@ -445,7 +445,15 @@ class ExcelHandler:
             # Renombrar columnas
             df = df.rename(columns=column_mapping)
             
-            evaluations = [row.to_dict() for _, row in df.iterrows()]
+            evaluations = []
+            for _, row in df.iterrows():
+                evaluation = row.to_dict()
+                
+                # Calcular aprobación automática de conocimiento (≥80%)
+                score_percentage = evaluation.get('score_percentage', 0)
+                evaluation['aprobo_conocimiento'] = 'Sí' if score_percentage >= 80 else 'No'
+                
+                evaluations.append(evaluation)
             
             # Sanitizar datos para evitar objetos AdminResponse embebidos
             sanitized_evaluations = []
