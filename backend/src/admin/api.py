@@ -1006,9 +1006,21 @@ async def get_generation_results():
 async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_session)):
     """Obtener estadísticas de evaluaciones presentadas"""
     try:
-        from ..excel_handler import ExcelHandler
+        print(f"🔍 [API DEBUG] Iniciando get_evaluations_statistics...")
         
-        excel_handler = ExcelHandler()
+        try:
+            from ..excel_handler import ExcelHandler
+            print(f"✅ [API DEBUG] ExcelHandler importado correctamente")
+        except Exception as import_error:
+            print(f"❌ [API DEBUG] Error importando ExcelHandler: {import_error}")
+            raise import_error
+        
+        try:
+            excel_handler = ExcelHandler()
+            print(f"✅ [API DEBUG] ExcelHandler inicializado correctamente")
+        except Exception as init_error:
+            print(f"❌ [API DEBUG] Error inicializando ExcelHandler: {init_error}")
+            raise init_error
         
         # Obtener evaluaciones con manejo de errores robusto
         try:
@@ -1115,7 +1127,7 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
         )
 
 @admin_router.get("/evaluations/stats")
-async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_session)):
+async def get_evaluations_stats_alias(current_user: Dict = Depends(verify_admin_session)):
     """Alias para compatibilidad - redirige a statistics"""
     return await get_evaluations_statistics(current_user)
 
@@ -1129,10 +1141,28 @@ async def search_evaluations(
 ):
     """Buscar evaluaciones con filtros"""
     try:
-        from ..excel_handler import ExcelHandler
+        print(f"🔍 [SEARCH DEBUG] Iniciando búsqueda con cédula: {cedula}")
         
-        excel_handler = ExcelHandler()
-        evaluations = await excel_handler.get_all_evaluations()
+        try:
+            from ..excel_handler import ExcelHandler
+            print(f"✅ [SEARCH DEBUG] ExcelHandler importado correctamente")
+        except Exception as import_error:
+            print(f"❌ [SEARCH DEBUG] Error importando ExcelHandler: {import_error}")
+            raise import_error
+        
+        try:
+            excel_handler = ExcelHandler()
+            print(f"✅ [SEARCH DEBUG] ExcelHandler inicializado correctamente")
+        except Exception as init_error:
+            print(f"❌ [SEARCH DEBUG] Error inicializando ExcelHandler: {init_error}")
+            raise init_error
+            
+        try:
+            evaluations = await excel_handler.get_all_evaluations()
+            print(f"📊 [SEARCH DEBUG] Evaluaciones obtenidas: {len(evaluations) if evaluations else 0}")
+        except Exception as eval_error:
+            print(f"❌ [SEARCH DEBUG] Error obteniendo evaluaciones: {eval_error}")
+            raise eval_error
         
         # Aplicar filtros
         filtered_evaluations = evaluations
