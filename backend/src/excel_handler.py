@@ -424,6 +424,27 @@ class ExcelHandler:
                 return []
             
             df = pd.read_excel(self.results_file, sheet_name=RESULTS_SHEETS["evaluations"]["name"])
+            
+            # Mapear nombres de columnas del Excel a nombres esperados por el código
+            column_mapping = {
+                'Evaluation Id': 'evaluation_id',
+                'Cedula': 'cedula',
+                'Nombre': 'nombre',
+                'Cargo': 'cargo',
+                'Campo': 'campo',
+                'Procedure Codigo': 'procedure_codigo',
+                'Procedure Nombre': 'procedure_nombre',
+                'Total Questions': 'total_questions',
+                'Correct Answers': 'correct_answers',
+                'Score Percentage': 'score_percentage',
+                'Aprobo': 'aprobo',
+                'Started At': 'started_at',
+                'Completed At': 'completed_at'
+            }
+            
+            # Renombrar columnas
+            df = df.rename(columns=column_mapping)
+            
             evaluations = [row.to_dict() for _, row in df.iterrows()]
             
             # Sanitizar datos para evitar objetos AdminResponse embebidos
@@ -458,7 +479,7 @@ class ExcelHandler:
                         "procedure_name": proc_data['Procedure Nombre'].iloc[0] if not proc_data.empty else "",
                         "total_evaluations": len(proc_data),
                         "average_score": round(proc_data['Score Percentage'].mean(), 2),
-                        "approval_rate": round((proc_data['Aprobo'] == 'Sí').sum() / len(proc_data) * 100, 2)
+                        "approval_rate": round((proc_data['Aprobo'].str.contains('si', case=False, na=False)).sum() / len(proc_data) * 100, 2)
                     }
                     stats.append(stat)
             
@@ -618,12 +639,30 @@ class ExcelHandler:
                         sanitized[key] = None
                     continue
                 
-                # Para tipos primitivos simples, mantener el valor
-                if isinstance(value, (str, int, float, bool)):
-                    sanitized[key] = value
+                # Limpiar valores con prefijos de enum
+                if key == "campo" and "CampoEnum." in str_value:
+                    # CampoEnum.cupiagua → cupiagua
+                    clean_value = str_value.replace("CampoEnum.", "").capitalize()
+                    sanitized[key] = clean_value
+                elif key == "aprobo" and "SiNoEnum." in str_value:
+                    # SiNoEnum.si → Sí, SiNoEnum.no → No
+                    clean_value = str_value.replace("SiNoEnum.", "")
+                    if clean_value == "si":
+                        sanitized[key] = "Sí"
+                    elif clean_value == "no":
+                        sanitized[key] = "No"
+                    else:
+                        sanitized[key] = clean_value
+                elif "OptionEnum." in str_value:
+                    # OptionEnum.A → A
+                    sanitized[key] = str_value.replace("OptionEnum.", "")
                 else:
-                    # Para otros tipos, convertir a string de forma segura
-                    sanitized[key] = str_value if str_value != "nan" else None
+                    # Para tipos primitivos simples, mantener el valor
+                    if isinstance(value, (str, int, float, bool)):
+                        sanitized[key] = value
+                    else:
+                        # Para otros tipos, convertir a string de forma segura
+                        sanitized[key] = str_value if str_value != "nan" else None
             
             return sanitized
             
