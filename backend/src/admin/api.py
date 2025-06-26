@@ -46,25 +46,17 @@ class AdminLoginResponse(BaseModel):
 
 def verify_admin_session(authorization: str = Header(None)):
     """Middleware para verificar sesión de admin"""
-    print(f"🔍 [AUTH DEBUG] Authorization header: {authorization}")
-    print(f"🔍 [AUTH DEBUG] Active sessions: {list(active_sessions.keys())}")
-    
     if not authorization:
-        print(f"❌ [AUTH DEBUG] No authorization header")
         raise HTTPException(status_code=401, detail="No authorization header")
     
     if not authorization.startswith("Bearer "):
-        print(f"❌ [AUTH DEBUG] Invalid authorization format")
         raise HTTPException(status_code=401, detail="Invalid authorization format")
     
     token = authorization.replace("Bearer ", "")
-    print(f"🔍 [AUTH DEBUG] Extracted token: {token}")
     
     if token not in active_sessions:
-        print(f"❌ [AUTH DEBUG] Token not found in active sessions")
         raise HTTPException(status_code=401, detail="Invalid or expired session")
     
-    print(f"✅ [AUTH DEBUG] Token válido, usuario: {active_sessions[token].get('username', 'unknown')}")
     return active_sessions[token]
 
 @admin_router.post("/auth/login", response_model=AdminLoginResponse)
@@ -1016,27 +1008,13 @@ async def get_generation_results():
 async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_session)):
     """Obtener estadísticas de evaluaciones presentadas"""
     try:
-        print(f"🔍 [API DEBUG] Iniciando get_evaluations_statistics...")
+        from ..excel_handler import ExcelHandler
         
-        try:
-            from ..excel_handler import ExcelHandler
-            print(f"✅ [API DEBUG] ExcelHandler importado correctamente")
-        except Exception as import_error:
-            print(f"❌ [API DEBUG] Error importando ExcelHandler: {import_error}")
-            raise import_error
-        
-        try:
-            excel_handler = ExcelHandler()
-            print(f"✅ [API DEBUG] ExcelHandler inicializado correctamente")
-        except Exception as init_error:
-            print(f"❌ [API DEBUG] Error inicializando ExcelHandler: {init_error}")
-            raise init_error
+        excel_handler = ExcelHandler()
         
         # Obtener evaluaciones con manejo de errores robusto
         try:
-            print(f"🔍 [API DEBUG] Iniciando get_all_evaluations...")
             evaluations = await excel_handler.get_all_evaluations()
-            print(f"📊 [API DEBUG] Evaluaciones obtenidas: {len(evaluations) if evaluations else 0}")
             
             # Limpiar datos de evaluaciones para evitar objetos AdminResponse anidados
             if evaluations:
@@ -1139,35 +1117,7 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
 @admin_router.get("/evaluations/stats")
 async def get_evaluations_stats_alias(current_user: Dict = Depends(verify_admin_session)):
     """Alias para compatibilidad - redirige a statistics"""
-    try:
-        print(f"🔍 [STATS DEBUG] Usuario autenticado: {current_user}")
-        return await get_evaluations_statistics(current_user)
-    except Exception as e:
-        print(f"❌ [STATS DEBUG] Error en alias: {e}")
-        raise HTTPException(status_code=500, detail=f"Error en estadísticas: {str(e)}")
-
-@admin_router.get("/evaluations/stats-test")
-async def get_evaluations_stats_test():
-    """Test sin autenticación para debug"""
-    try:
-        print(f"🔍 [TEST DEBUG] Iniciando test sin autenticación...")
-        from ..excel_handler import ExcelHandler
-        excel_handler = ExcelHandler()
-        evaluations = await excel_handler.get_all_evaluations()
-        return {
-            "success": True,
-            "message": "Test exitoso",
-            "data": {
-                "total_evaluations": len(evaluations) if evaluations else 0,
-                "evaluations": evaluations[:5] if evaluations else []  # Solo las primeras 5
-            }
-        }
-    except Exception as e:
-        print(f"❌ [TEST DEBUG] Error en test: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    return await get_evaluations_statistics(current_user)
 
 @admin_router.get("/evaluations/search")
 async def search_evaluations(
@@ -1179,28 +1129,10 @@ async def search_evaluations(
 ):
     """Buscar evaluaciones con filtros"""
     try:
-        print(f"🔍 [SEARCH DEBUG] Iniciando búsqueda con cédula: {cedula}")
+        from ..excel_handler import ExcelHandler
         
-        try:
-            from ..excel_handler import ExcelHandler
-            print(f"✅ [SEARCH DEBUG] ExcelHandler importado correctamente")
-        except Exception as import_error:
-            print(f"❌ [SEARCH DEBUG] Error importando ExcelHandler: {import_error}")
-            raise import_error
-        
-        try:
-            excel_handler = ExcelHandler()
-            print(f"✅ [SEARCH DEBUG] ExcelHandler inicializado correctamente")
-        except Exception as init_error:
-            print(f"❌ [SEARCH DEBUG] Error inicializando ExcelHandler: {init_error}")
-            raise init_error
-            
-        try:
-            evaluations = await excel_handler.get_all_evaluations()
-            print(f"📊 [SEARCH DEBUG] Evaluaciones obtenidas: {len(evaluations) if evaluations else 0}")
-        except Exception as eval_error:
-            print(f"❌ [SEARCH DEBUG] Error obteniendo evaluaciones: {eval_error}")
-            raise eval_error
+        excel_handler = ExcelHandler()
+        evaluations = await excel_handler.get_all_evaluations()
         
         # Aplicar filtros
         filtered_evaluations = evaluations
