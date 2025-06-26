@@ -10,13 +10,33 @@ const EvaluationsManagerEnhanced = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [stats, setStats] = useState(null)
+  const [filteredStats, setFilteredStats] = useState(null)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [evaluations, setEvaluations] = useState([])
+  const [allEvaluations, setAllEvaluations] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  
+  // Estados de filtros
+  const [filters, setFilters] = useState({
+    campo: '',
+    disciplina: '',
+    procedimiento: '',
+    fechaDesde: '',
+    fechaHasta: '',
+    aproboConocimiento: '',
+    aproboAplicado: ''
+  })
 
   useEffect(() => {
     loadStats()
+    loadAllEvaluations()
   }, [])
+
+  // Aplicar filtros cuando cambien
+  useEffect(() => {
+    applyFilters()
+  }, [filters, allEvaluations])
 
   const loadStats = async () => {
     try {
@@ -78,81 +98,454 @@ const EvaluationsManagerEnhanced = () => {
     setError('')
   }
 
+  const loadAllEvaluations = async () => {
+    try {
+      const response = await fetch('/api/v1/admin/evaluations/search?limit=1000', {
+        headers: getAuthHeaders()
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        setAllEvaluations(result.data.evaluations || [])
+      }
+    } catch (error) {
+      console.error('Error cargando evaluaciones:', error)
+    }
+  }
+
+  const applyFilters = () => {
+    if (!allEvaluations.length) return
+
+    let filtered = [...allEvaluations]
+
+    // Aplicar filtros
+    if (filters.campo) {
+      filtered = filtered.filter(eval => 
+        eval.campo?.toLowerCase().includes(filters.campo.toLowerCase())
+      )
+    }
+    
+    if (filters.disciplina) {
+      filtered = filtered.filter(eval => 
+        eval.disciplina?.toLowerCase().includes(filters.disciplina.toLowerCase())
+      )
+    }
+    
+    if (filters.procedimiento) {
+      filtered = filtered.filter(eval => 
+        eval.procedure_codigo?.toLowerCase().includes(filters.procedimiento.toLowerCase()) ||
+        eval.procedure_nombre?.toLowerCase().includes(filters.procedimiento.toLowerCase())
+      )
+    }
+    
+    if (filters.fechaDesde) {
+      filtered = filtered.filter(eval => 
+        new Date(eval.completed_at) >= new Date(filters.fechaDesde)
+      )
+    }
+    
+    if (filters.fechaHasta) {
+      filtered = filtered.filter(eval => 
+        new Date(eval.completed_at) <= new Date(filters.fechaHasta + 'T23:59:59')
+      )
+    }
+    
+    if (filters.aproboConocimiento) {
+      filtered = filtered.filter(eval => 
+        eval.aprobo_conocimiento === filters.aproboConocimiento
+      )
+    }
+    
+    if (filters.aproboAplicado) {
+      filtered = filtered.filter(eval => 
+        eval.aprobo_aplicado === filters.aproboAplicado
+      )
+    }
+
+    // Calcular estadísticas filtradas
+    calculateFilteredStats(filtered)
+  }
+
+  const calculateFilteredStats = (filteredEvaluations) => {
+    if (!filteredEvaluations.length) {
+      setFilteredStats(null)
+      return
+    }
+
+    const stats_by_campo = {}
+    let approved_conocimiento_count = 0
+    let approved_aplicado_count = 0
+
+    filteredEvaluations.forEach(eval => {
+      // Procesar campo
+      const campo = eval.campo || 'Sin campo'
+      stats_by_campo[campo] = (stats_by_campo[campo] || 0) + 1
+      
+      // Contar aprobados
+      if (eval.aprobo_conocimiento === 'Sí') approved_conocimiento_count++
+      if (eval.aprobo_aplicado === 'Sí') approved_aplicado_count++
+    })
+
+    const conocimiento_rate = (approved_conocimiento_count / filteredEvaluations.length) * 100
+    const aplicado_rate = (approved_aplicado_count / filteredEvaluations.length) * 100
+
+    setFilteredStats({
+      total_evaluations: filteredEvaluations.length,
+      by_campo: stats_by_campo,
+      conocimiento: {
+        approval_rate: Math.round(conocimiento_rate * 100) / 100,
+        approved_count: approved_conocimiento_count,
+        failed_count: filteredEvaluations.length - approved_conocimiento_count
+      },
+      aplicado: {
+        approval_rate: Math.round(aplicado_rate * 100) / 100,
+        approved_count: approved_aplicado_count,
+        failed_count: filteredEvaluations.length - approved_aplicado_count
+      },
+      recent_evaluations: filteredEvaluations
+        .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
+        .slice(0, 10)
+    })
+  }
+
+  const updateFilter = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+  }
+
+  const clearFilters = () => {
+    setFilters({
+      campo: '',
+      disciplina: '',
+      procedimiento: '',
+      fechaDesde: '',
+      fechaHasta: '',
+      aproboConocimiento: '',
+      aproboAplicado: ''
+    })
+  }
+
+  const hasActiveFilters = () => {
+    return Object.values(filters).some(value => value !== '')
+  }
+
+  const renderFiltersPanel = () => (
+    <div style={{
+      background: '#f8f9fa',
+      padding: '1.5rem',
+      borderRadius: '8px',
+      marginBottom: '1.5rem',
+      border: '1px solid #e1e5e9'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0, color: '#333' }}>🔍 Filtros</h3>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            style={{
+              padding: '0.5rem 1rem',
+              background: '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.8rem'
+            }}
+          >
+            {showAdvancedFilters ? 'Ocultar avanzados' : 'Filtros avanzados'}
+          </button>
+          {hasActiveFilters() && (
+            <button
+              onClick={clearFilters}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filtros principales */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1rem',
+        marginBottom: showAdvancedFilters ? '1rem' : '0'
+      }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+            Campo:
+          </label>
+          <select
+            value={filters.campo}
+            onChange={(e) => updateFilter('campo', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          >
+            <option value="">Todos los campos</option>
+            <option value="Cupiagua">Cupiagua</option>
+            <option value="Cusiana">Cusiana</option>
+            <option value="Florena">Floreña</option>
+            <option value="Transversal">Transversal</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+            Disciplina:
+          </label>
+          <input
+            type="text"
+            value={filters.disciplina}
+            onChange={(e) => updateFilter('disciplina', e.target.value)}
+            placeholder="Ej: Nuevas Tecnologías"
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+            Procedimiento:
+          </label>
+          <input
+            type="text"
+            value={filters.procedimiento}
+            onChange={(e) => updateFilter('procedimiento', e.target.value)}
+            placeholder="Código o nombre"
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+            Fecha desde:
+          </label>
+          <input
+            type="date"
+            value={filters.fechaDesde}
+            onChange={(e) => updateFilter('fechaDesde', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+            Fecha hasta:
+          </label>
+          <input
+            type="date"
+            value={filters.fechaHasta}
+            onChange={(e) => updateFilter('fechaHasta', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Filtros avanzados */}
+      {showAdvancedFilters && (
+        <div style={{
+          borderTop: '1px solid #ddd',
+          paddingTop: '1rem'
+        }}>
+          <h4 style={{ margin: '0 0 1rem 0', color: '#333', fontSize: '0.9rem' }}>Filtros Avanzados</h4>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem'
+          }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                Aprobó Conocimiento:
+              </label>
+              <select
+                value={filters.aproboConocimiento}
+                onChange={(e) => updateFilter('aproboConocimiento', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              >
+                <option value="">Todos</option>
+                <option value="Sí">Sí (≥80%)</option>
+                <option value="No">No (<80%)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
+                Aprobó Aplicado:
+              </label>
+              <select
+                value={filters.aproboAplicado}
+                onChange={(e) => updateFilter('aproboAplicado', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              >
+                <option value="">Todos</option>
+                <option value="Sí">Sí (Supervisor)</option>
+                <option value="No">No (Supervisor)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasActiveFilters() && (
+        <div style={{
+          marginTop: '1rem',
+          padding: '0.5rem',
+          background: '#e0f2fe',
+          borderRadius: '4px',
+          fontSize: '0.8rem',
+          color: '#0369a1'
+        }}>
+          ℹ️ Filtros activos: {Object.entries(filters).filter(([_, value]) => value !== '').length}
+        </div>
+      )}
+    </div>
+  )
+
+  const renderStatsCards = (statsData, title, subtitle = null) => (
+    <div style={{ marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+        <h3 style={{ margin: 0, color: '#333' }}>{title}</h3>
+        {subtitle && (
+          <span style={{ 
+            fontSize: '0.8rem', 
+            color: '#666', 
+            background: '#f1f5f9', 
+            padding: '0.25rem 0.5rem', 
+            borderRadius: '4px' 
+          }}>
+            {subtitle}
+          </span>
+        )}
+      </div>
+      
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Total Evaluaciones</h3>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#667eea' }}>
+            {statsData.total_evaluations}
+          </div>
+        </div>
+        
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Aprobación Conocimiento</h3>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+            {statsData.conocimiento?.approval_rate || statsData.approval_rate}%
+          </div>
+          <div style={{ fontSize: '0.8rem', color: '#666' }}>
+            {statsData.conocimiento?.approved_count || statsData.approved_count} aprobados
+          </div>
+        </div>
+        
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Aprobación Aplicado</h3>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#059669' }}>
+            {statsData.aplicado?.approval_rate || 0}%
+          </div>
+          <div style={{ fontSize: '0.8rem', color: '#666' }}>
+            {statsData.aplicado?.approved_count || 0} aprobados
+          </div>
+        </div>
+        
+        <div style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Total Reprobados</h3>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626' }}>
+            {statsData.conocimiento?.failed_count || statsData.failed_count}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: '#666' }}>
+            en conocimiento
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   const renderDashboard = () => (
     <div style={{ padding: '1rem' }}>
       <h2>📊 Dashboard de Evaluaciones</h2>
+      
+      {renderFiltersPanel()}
       
       {loading && <div style={{ textAlign: 'center', padding: '1rem' }}>Cargando estadísticas...</div>}
       
       {stats && (
         <div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1rem',
-            marginBottom: '2rem'
-          }}>
-            <div style={{
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Total Evaluaciones</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#667eea' }}>
-                {stats.total_evaluations}
-              </div>
-            </div>
-            
-            <div style={{
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Aprobación Conocimiento</h3>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
-                {stats.conocimiento?.approval_rate || stats.approval_rate}%
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                {stats.conocimiento?.approved_count || stats.approved_count} aprobados
-              </div>
-            </div>
-            
-            <div style={{
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Aprobación Aplicado</h3>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#059669' }}>
-                {stats.aplicado?.approval_rate || 0}%
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                {stats.aplicado?.approved_count || 0} aprobados
-              </div>
-            </div>
-            
-            <div style={{
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Total Reprobados</h3>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626' }}>
-                {stats.conocimiento?.failed_count || stats.failed_count}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                en conocimiento
-              </div>
-            </div>
-          </div>
+          {/* Estadísticas generales */}
+          {renderStatsCards(stats, "📈 Estadísticas Generales", "Todas las evaluaciones")}
+          
+          {/* Estadísticas filtradas */}
+          {filteredStats && hasActiveFilters() && (
+            renderStatsCards(filteredStats, "🎯 Estadísticas Filtradas", `${filteredStats.total_evaluations} evaluaciones`)
+          )}
 
           <div style={{
             background: 'white',
@@ -190,7 +583,22 @@ const EvaluationsManagerEnhanced = () => {
               borderRadius: '8px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#333' }}>Evaluaciones Recientes</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, color: '#333' }}>
+                {hasActiveFilters() && filteredStats ? 'Evaluaciones Filtradas' : 'Evaluaciones Recientes'}
+              </h3>
+              {hasActiveFilters() && filteredStats && (
+                <span style={{
+                  fontSize: '0.8rem',
+                  color: '#666',
+                  background: '#e0f2fe',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px'
+                }}>
+                  {filteredStats.recent_evaluations.length} resultados
+                </span>
+              )}
+            </div>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px',
@@ -211,7 +619,7 @@ const EvaluationsManagerEnhanced = () => {
                 <span style={{ textAlign: 'center' }}>Aplicado</span>
                 <span style={{ textAlign: 'center' }}>Fecha</span>
               </div>
-              {stats.recent_evaluations.slice(0, 8).map((evaluation, index) => (
+              {(hasActiveFilters() && filteredStats ? filteredStats.recent_evaluations : stats.recent_evaluations).slice(0, 8).map((evaluation, index) => (
                 <div key={index} style={{
                   display: 'grid',
                   gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px',
