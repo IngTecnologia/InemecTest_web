@@ -4,6 +4,8 @@ const EvaluationForm = () => {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isCompleted, setIsCompleted] = useState(false)
+  const [evaluationResult, setEvaluationResult] = useState(null)
   const [procedures, setProcedures] = useState([])
   const [filteredProcedures, setFilteredProcedures] = useState([])
   const [selectedProcedure, setSelectedProcedure] = useState(null)
@@ -301,10 +303,22 @@ const EvaluationForm = () => {
 
       const result = await response.json()
       
-      alert(`¡Evaluación completada exitosamente!\n\nID de evaluación: ${result.evaluation_id}\n\nLos resultados han sido guardados en Excel.`)
-      
-      // Reiniciar formulario
-      setCurrentStep(1)
+      // Guardar resultado y mostrar página de éxito
+      setEvaluationResult({
+        evaluation_id: result.evaluation_id,
+        score_percentage: result.score_percentage || 0,
+        total_questions: result.total_questions || 5,
+        correct_answers: result.correct_answers || 0,
+        aprobo_conocimiento: (result.score_percentage || 0) >= 80 ? 'Sí' : 'No',
+        aprobo_aplicado: formData.feedback.aprobo === 'si' ? 'Sí' : 'No',
+        user_data: {
+          cedula: formData.cedula,
+          nombre: formData.nombre,
+          procedure_codigo: formData.procedure_codigo,
+          procedure_nombre: selectedProcedure?.nombre || ''
+        }
+      })
+      setIsCompleted(true)
       setFormData({
         cedula: '',
         nombre: '',
@@ -338,6 +352,169 @@ const EvaluationForm = () => {
       setLoading(false)
     }
   }
+
+  const renderSuccessPage = () => (
+    <div className="form-container" style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        padding: '2rem',
+        borderRadius: '12px',
+        marginBottom: '2rem'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
+        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '1.8rem' }}>¡Evaluación Completada!</h1>
+        <p style={{ margin: 0, fontSize: '1.1rem', opacity: 0.9 }}>
+          Tu evaluación ha sido enviada exitosamente
+        </p>
+      </div>
+
+      <div style={{
+        background: 'white',
+        padding: '2rem',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        marginBottom: '2rem'
+      }}>
+        <h2 style={{ color: '#333', marginBottom: '1.5rem' }}>Detalles de tu Evaluación</h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            background: '#f8f9fa',
+            padding: '1rem',
+            borderRadius: '8px',
+            textAlign: 'left'
+          }}>
+            <strong style={{ color: '#333' }}>Participante:</strong>
+            <div style={{ marginTop: '0.5rem' }}>
+              <div>{evaluationResult?.user_data.nombre}</div>
+              <div style={{ color: '#666', fontSize: '0.9rem' }}>Cédula: {evaluationResult?.user_data.cedula}</div>
+            </div>
+          </div>
+          
+          <div style={{
+            background: '#f8f9fa',
+            padding: '1rem',
+            borderRadius: '8px',
+            textAlign: 'left'
+          }}>
+            <strong style={{ color: '#333' }}>Procedimiento:</strong>
+            <div style={{ marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.9rem' }}>{evaluationResult?.user_data.procedure_codigo}</div>
+              <div style={{ color: '#666', fontSize: '0.8rem' }}>{evaluationResult?.user_data.procedure_nombre}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            background: '#e3f2fd',
+            padding: '1.5rem',
+            borderRadius: '8px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', color: '#1976d2', fontSize: '1rem' }}>Score Obtenido</h3>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1976d2' }}>
+              {evaluationResult?.score_percentage}%
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#666' }}>
+              {evaluationResult?.correct_answers}/{evaluationResult?.total_questions} preguntas correctas
+            </div>
+          </div>
+
+          <div style={{
+            background: evaluationResult?.aprobo_conocimiento === 'Sí' ? '#e8f5e8' : '#ffebee',
+            padding: '1.5rem',
+            borderRadius: '8px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ 
+              margin: '0 0 0.5rem 0', 
+              color: evaluationResult?.aprobo_conocimiento === 'Sí' ? '#2e7d32' : '#c62828',
+              fontSize: '1rem' 
+            }}>
+              Evaluación de Conocimiento
+            </h3>
+            <div style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 'bold',
+              color: evaluationResult?.aprobo_conocimiento === 'Sí' ? '#2e7d32' : '#c62828'
+            }}>
+              {evaluationResult?.aprobo_conocimiento === 'Sí' ? '✅ APROBÓ' : '❌ NO APROBÓ'}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#666' }}>
+              {evaluationResult?.aprobo_conocimiento === 'Sí' ? '≥80% requerido' : '<80% obtenido'}
+            </div>
+          </div>
+
+          <div style={{
+            background: evaluationResult?.aprobo_aplicado === 'Sí' ? '#e8f5e8' : '#ffebee',
+            padding: '1.5rem',
+            borderRadius: '8px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ 
+              margin: '0 0 0.5rem 0', 
+              color: evaluationResult?.aprobo_aplicado === 'Sí' ? '#2e7d32' : '#c62828',
+              fontSize: '1rem' 
+            }}>
+              Conocimiento Aplicado
+            </h3>
+            <div style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 'bold',
+              color: evaluationResult?.aprobo_aplicado === 'Sí' ? '#2e7d32' : '#c62828'
+            }}>
+              {evaluationResult?.aprobo_aplicado === 'Sí' ? '✅ APROBÓ' : '❌ NO APROBÓ'}
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#666' }}>
+              Evaluación del supervisor
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          background: '#f0f4f8',
+          padding: '1rem',
+          borderRadius: '8px',
+          border: '2px dashed #667eea'
+        }}>
+          <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '0.5rem' }}>
+            📄 ID de Evaluación: {evaluationResult?.evaluation_id}
+          </div>
+          <div style={{ color: '#666', fontSize: '0.9rem' }}>
+            Los resultados han sido guardados en el sistema
+          </div>
+        </div>
+      </div>
+
+      <button 
+        className="btn" 
+        onClick={() => {
+          setIsCompleted(false)
+          setEvaluationResult(null)
+          setCurrentStep(1)
+        }}
+        style={{ 
+          padding: '1rem 2rem',
+          fontSize: '1.1rem',
+          background: '#667eea'
+        }}
+      >
+        Realizar Nueva Evaluación
+      </button>
+    </div>
+  )
 
   const renderUserData = () => (
     <div className="form-container">
@@ -836,6 +1013,11 @@ const EvaluationForm = () => {
         <div className="loading">Cargando sistema...</div>
       </div>
     )
+  }
+
+  // Mostrar página de éxito si está completado
+  if (isCompleted && evaluationResult) {
+    return renderSuccessPage()
   }
 
   return (
