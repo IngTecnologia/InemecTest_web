@@ -1012,7 +1012,9 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
         
         # Obtener evaluaciones con manejo de errores robusto
         try:
+            print(f"🔍 [API DEBUG] Iniciando get_all_evaluations...")
             evaluations = await excel_handler.get_all_evaluations()
+            print(f"📊 [API DEBUG] Evaluaciones obtenidas: {len(evaluations) if evaluations else 0}")
             
             # Limpiar datos de evaluaciones para evitar objetos AdminResponse anidados
             if evaluations:
@@ -1111,6 +1113,11 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
             status_code=500,
             detail=f"Error obteniendo estadísticas de evaluaciones: {str(e)}"
         )
+
+@admin_router.get("/evaluations/stats")
+async def get_evaluations_stats(current_user: Dict = Depends(verify_admin_session)):
+    """Alias para compatibilidad - redirige a statistics"""
+    return await get_evaluations_statistics(current_user)
 
 @admin_router.get("/evaluations/search")
 async def search_evaluations(

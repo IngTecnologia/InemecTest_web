@@ -420,23 +420,69 @@ class ExcelHandler:
     async def get_all_evaluations(self) -> List[Dict[str, Any]]:
         """Obtener lista de todas las evaluaciones"""
         try:
+            print(f"🔍 [DEBUG] Verificando archivo de resultados: {self.results_file}")
+            
             if not self.results_file.exists():
+                print(f"⚠️ [DEBUG] Archivo de resultados no existe: {self.results_file}")
                 return []
             
-            df = pd.read_excel(self.results_file, sheet_name=RESULTS_SHEETS["evaluations"]["name"])
+            print(f"📊 [DEBUG] Intentando leer hoja: {RESULTS_SHEETS['evaluations']['name']}")
+            
+            # Primero verificar qué hojas existen
+            try:
+                excel_file = pd.ExcelFile(self.results_file)
+                available_sheets = excel_file.sheet_names
+                print(f"📋 [DEBUG] Hojas disponibles: {available_sheets}")
+            except Exception as sheet_error:
+                print(f"❌ [DEBUG] Error leyendo hojas del Excel: {sheet_error}")
+                return []
+            
+            # Verificar si la hoja existe
+            sheet_name = RESULTS_SHEETS["evaluations"]["name"]
+            if sheet_name not in available_sheets:
+                print(f"⚠️ [DEBUG] Hoja '{sheet_name}' no encontrada. Disponibles: {available_sheets}")
+                return []
+            
+            df = pd.read_excel(self.results_file, sheet_name=sheet_name)
+            print(f"📊 [DEBUG] Datos leídos: {len(df)} filas, columnas: {list(df.columns)}")
+            
+            if df.empty:
+                print(f"⚠️ [DEBUG] La hoja '{sheet_name}' está vacía")
+                return []
+            
             evaluations = [row.to_dict() for _, row in df.iterrows()]
             
             # Sanitizar datos para evitar objetos AdminResponse embebidos
             sanitized_evaluations = []
-            for evaluation in evaluations:
-                sanitized_eval = self._sanitize_evaluation_data(evaluation)
-                if sanitized_eval:  # Solo agregar si la sanitización fue exitosa
-                    sanitized_evaluations.append(sanitized_eval)
+            for i, evaluation in enumerate(evaluations):
+                try:
+                    sanitized_eval = self._sanitize_evaluation_data(evaluation)
+                    if sanitized_eval:  # Solo agregar si la sanitización fue exitosa
+                        sanitized_evaluations.append(sanitized_eval)
+                    else:
+                        print(f"⚠️ [DEBUG] Evaluación {i} descartada por sanitización")
+                except Exception as sanitize_error:
+                    print(f"❌ [DEBUG] Error sanitizando evaluación {i}: {sanitize_error}")
+                    # Intentar agregar datos básicos sin sanitizar
+                    try:
+                        basic_eval = {
+                            "evaluation_id": str(evaluation.get("evaluation_id", f"eval_{i}")),
+                            "cedula": str(evaluation.get("cedula", "")),
+                            "nombre": str(evaluation.get("nombre", "")),
+                            "procedure_codigo": str(evaluation.get("procedure_codigo", "")),
+                            "aprobo": str(evaluation.get("aprobo", ""))
+                        }
+                        sanitized_evaluations.append(basic_eval)
+                    except Exception as basic_error:
+                        print(f"❌ [DEBUG] Error creando evaluación básica {i}: {basic_error}")
+                        continue
             
+            print(f"✅ [DEBUG] Evaluaciones sanitizadas: {len(sanitized_evaluations)}")
             return sanitized_evaluations
             
         except Exception as e:
             print(f"❌ Error obteniendo evaluaciones: {e}")
+            print(f"❌ Traceback completo: {str(e)}")
             return []
     
     async def get_procedure_statistics(self) -> List[Dict[str, Any]]:
