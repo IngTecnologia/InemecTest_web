@@ -108,7 +108,7 @@ class EvaluationCreate(BaseModel):
     """Datos para crear una nueva evaluación"""
     user_data: UserData
     procedure_codigo: str = Field(..., description="Código del procedimiento")
-    session_id: str = Field(..., description="ID de sesión para mapear respuestas")
+    session_id: Optional[str] = Field(None, description="ID de sesión (opcional para compatibilidad)")
     knowledge_answers: List[KnowledgeAnswer]
     applied_knowledge: AppliedKnowledgeData
     feedback: FeedbackData
@@ -122,6 +122,9 @@ class EvaluationResponse(BaseModel):
     evaluation_id: str
     message: str
     success: bool
+    score_percentage: float = Field(..., description="Porcentaje de calificación obtenido")
+    total_questions: int = Field(..., description="Total de preguntas")
+    correct_answers: int = Field(..., description="Respuestas correctas")
 
 class AnswerResult(BaseModel):
     """Resultado detallado de una respuesta"""

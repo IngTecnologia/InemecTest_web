@@ -310,38 +310,13 @@ const EvaluationForm = () => {
 
       const result = await response.json()
       
-      // Get the actual results from the backend
-      const resultsResponse = await fetch(`${API_BASE_URL}/evaluations/${result.evaluation_id}/results`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      let scoreData = {
-        score_percentage: 0,
-        total_questions: questions.length,
-        correct_answers: 0
-      }
-      
-      if (resultsResponse.ok) {
-        const resultsData = await resultsResponse.json()
-        scoreData = {
-          score_percentage: resultsData.evaluation?.score_percentage || 0,
-          total_questions: resultsData.evaluation?.total_questions || questions.length,
-          correct_answers: resultsData.evaluation?.correct_answers || 0
-        }
-      } else {
-        // Fallback: estimate score based on total questions
-        scoreData.total_questions = questions.length
-      }
-      
-      // Guardar resultado y mostrar página de éxito
+      // Usar directamente la respuesta del backend que ahora incluye el score
       setEvaluationResult({
         evaluation_id: result.evaluation_id,
-        score_percentage: scoreData.score_percentage,
-        total_questions: scoreData.total_questions,
-        correct_answers: scoreData.correct_answers,
-        aprobo_conocimiento: scoreData.score_percentage >= 80 ? 'Sí' : 'No',
+        score_percentage: result.score_percentage || 0,
+        total_questions: result.total_questions || questions.length,
+        correct_answers: result.correct_answers || 0,
+        aprobo_conocimiento: (result.score_percentage || 0) >= 80 ? 'Sí' : 'No',
         aprobo_aplicado: formData.feedback.aprobo || 'No',
         user_data: {
           cedula: formData.cedula,

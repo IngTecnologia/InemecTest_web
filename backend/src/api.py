@@ -76,6 +76,78 @@ def get_question_mappings(session_id: str) -> tuple[List[dict], Dict[int, Dict[s
         return data["questions"], data["mappings"]
     return None, None
 
+def calculate_detailed_answers_direct(
+    questions: List[dict], 
+    user_answers: List[dict]
+) -> List[dict]:
+    """
+    Calcular respuestas detalladas comparando directamente con las opciones originales del Excel
+    """
+    questions_dict = {q["id"]: q for q in questions}
+    detailed_answers = []
+    
+    for answer in user_answers:
+        question_id = answer["question_id"]
+        question = questions_dict.get(question_id)
+        
+        if not question:
+            continue
+        
+        # La respuesta del usuario es la posición visual (A, B, C, D)
+        visual_position = answer["selected_option"]
+        
+        # Obtener las opciones originales del Excel
+        original_options = {
+            "A": question["option_a"],
+            "B": question["option_b"], 
+            "C": question["option_c"],
+            "D": question["option_d"]
+        }
+        
+        # El usuario seleccionó una opción visual, necesitamos saber qué texto seleccionó
+        # Este texto viene en display_order si está disponible
+        selected_text = ""
+        if "display_order" in answer and answer["display_order"]:
+            display_order = answer["display_order"]
+            option_key = f"option_{visual_position.lower()}_text"
+            selected_text = display_order.get(option_key, "")
+        
+        # Encontrar cuál opción original corresponde al texto seleccionado
+        selected_original_option = None
+        for orig_option, orig_text in original_options.items():
+            if orig_text.strip() == selected_text.strip():
+                selected_original_option = orig_option
+                break
+        
+        # Si no encontramos coincidencia exacta, usar la posición visual como fallback
+        if not selected_original_option:
+            selected_original_option = visual_position
+            selected_text = original_options.get(visual_position, "")
+        
+        # La respuesta correcta siempre es A en el original
+        correct_option = "A"
+        correct_text = original_options["A"]
+        is_correct = selected_original_option == correct_option
+        
+        detailed_answer = {
+            "question_id": question_id,
+            "question_text": question["question_text"],
+            "selected_option": visual_position,
+            "selected_text": selected_text,
+            "correct_option": correct_option,
+            "correct_text": correct_text,
+            "correct_option_displayed": visual_position,  # Simplificado
+            "is_correct": is_correct
+        }
+        
+        # Agregar display_order si está disponible
+        if "display_order" in answer:
+            detailed_answer["display_order"] = answer["display_order"]
+        
+        detailed_answers.append(detailed_answer)
+    
+    return detailed_answers
+
 def calculate_detailed_answers_with_mapping(
     questions: List[dict], 
     user_answers: List[dict],
@@ -286,19 +358,13 @@ async def create_evaluation(evaluation_data: EvaluationCreate):
                 detail=f"Procedimiento {evaluation_data.procedure_codigo} no encontrado"
             )
         
-        # Obtener preguntas originales y mapeos guardados usando session_id
-        questions_data, mappings = get_question_mappings(evaluation_data.session_id)
-        
-        # Si no hay mapeos en cache, obtener preguntas directamente
-        if not questions_data or not mappings:
-            questions_data = await excel_handler.get_questions_by_procedure(evaluation_data.procedure_codigo)
-            if not questions_data:
-                raise HTTPException(
-                    status_code=404, 
-                    detail=f"No hay preguntas para el procedimiento {evaluation_data.procedure_codigo}"
-                )
-            # En este caso, asumimos que no hubo randomización
-            mappings = {q["id"]: {"A": "A", "B": "B", "C": "C", "D": "D"} for q in questions_data}
+        # Obtener preguntas originales directamente del Excel (sin caché)
+        questions_data = await excel_handler.get_questions_by_procedure(evaluation_data.procedure_codigo)
+        if not questions_data:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No hay preguntas para el procedimiento {evaluation_data.procedure_codigo}"
+            )
         
         # Validar que se respondieron todas las preguntas
         if len(evaluation_data.knowledge_answers) != len(questions_data):
@@ -307,12 +373,11 @@ async def create_evaluation(evaluation_data: EvaluationCreate):
                 detail=f"Se esperaban {len(questions_data)} respuestas, se recibieron {len(evaluation_data.knowledge_answers)}"
             )
         
-        # Calcular respuestas detalladas con mapeo de randomización
+        # Calcular respuestas detalladas comparando directamente con opciones originales
         user_answers = [answer.dict() for answer in evaluation_data.knowledge_answers]
-        detailed_answers = calculate_detailed_answers_with_mapping(
+        detailed_answers = calculate_detailed_answers_direct(
             questions_data, 
-            user_answers, 
-            mappings
+            user_answers
         )
         
         # Calcular puntuación
@@ -335,7 +400,10 @@ async def create_evaluation(evaluation_data: EvaluationCreate):
         return EvaluationResponse(
             evaluation_id=evaluation_id,
             message="Evaluación completada exitosamente",
-            success=True
+            success=True,
+            score_percentage=score_data["score_percentage"],
+            total_questions=score_data["total_questions"],
+            correct_answers=score_data["correct_answers"]
         )
         
     except HTTPException:
