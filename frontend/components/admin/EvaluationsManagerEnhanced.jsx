@@ -120,45 +120,45 @@ const EvaluationsManagerEnhanced = () => {
 
     // Aplicar filtros
     if (filters.campo) {
-      filtered = filtered.filter(eval => 
-        eval.campo?.toLowerCase().includes(filters.campo.toLowerCase())
+      filtered = filtered.filter(evaluation => 
+        evaluation.campo?.toLowerCase().includes(filters.campo.toLowerCase())
       )
     }
     
     if (filters.disciplina) {
-      filtered = filtered.filter(eval => 
-        eval.disciplina?.toLowerCase().includes(filters.disciplina.toLowerCase())
+      filtered = filtered.filter(evaluation => 
+        evaluation.disciplina?.toLowerCase().includes(filters.disciplina.toLowerCase())
       )
     }
     
     if (filters.procedimiento) {
-      filtered = filtered.filter(eval => 
-        eval.procedure_codigo?.toLowerCase().includes(filters.procedimiento.toLowerCase()) ||
-        eval.procedure_nombre?.toLowerCase().includes(filters.procedimiento.toLowerCase())
+      filtered = filtered.filter(evaluation => 
+        evaluation.procedure_codigo?.toLowerCase().includes(filters.procedimiento.toLowerCase()) ||
+        evaluation.procedure_nombre?.toLowerCase().includes(filters.procedimiento.toLowerCase())
       )
     }
     
     if (filters.fechaDesde) {
-      filtered = filtered.filter(eval => 
-        new Date(eval.completed_at) >= new Date(filters.fechaDesde)
+      filtered = filtered.filter(evaluation => 
+        new Date(evaluation.completed_at) >= new Date(filters.fechaDesde)
       )
     }
     
     if (filters.fechaHasta) {
-      filtered = filtered.filter(eval => 
-        new Date(eval.completed_at) <= new Date(filters.fechaHasta + 'T23:59:59')
+      filtered = filtered.filter(evaluation => 
+        new Date(evaluation.completed_at) <= new Date(filters.fechaHasta + 'T23:59:59')
       )
     }
     
     if (filters.aproboConocimiento) {
-      filtered = filtered.filter(eval => 
-        eval.aprobo_conocimiento === filters.aproboConocimiento
+      filtered = filtered.filter(evaluation => 
+        evaluation.aprobo_conocimiento === filters.aproboConocimiento
       )
     }
     
     if (filters.aproboAplicado) {
-      filtered = filtered.filter(eval => 
-        eval.aprobo_aplicado === filters.aproboAplicado
+      filtered = filtered.filter(evaluation => 
+        evaluation.aprobo_aplicado === filters.aproboAplicado
       )
     }
 
@@ -176,14 +176,14 @@ const EvaluationsManagerEnhanced = () => {
     let approved_conocimiento_count = 0
     let approved_aplicado_count = 0
 
-    filteredEvaluations.forEach(eval => {
+    filteredEvaluations.forEach(evaluation => {
       // Procesar campo
-      const campo = eval.campo || 'Sin campo'
+      const campo = evaluation.campo || 'Sin campo'
       stats_by_campo[campo] = (stats_by_campo[campo] || 0) + 1
       
       // Contar aprobados
-      if (eval.aprobo_conocimiento === 'Sí') approved_conocimiento_count++
-      if (eval.aprobo_aplicado === 'Sí') approved_aplicado_count++
+      if (evaluation.aprobo_conocimiento === 'Sí') approved_conocimiento_count++
+      if (evaluation.aprobo_aplicado === 'Sí') approved_aplicado_count++
     })
 
     const conocimiento_rate = (approved_conocimiento_count / filteredEvaluations.length) * 100
