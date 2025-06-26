@@ -1129,7 +1129,35 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
 @admin_router.get("/evaluations/stats")
 async def get_evaluations_stats_alias(current_user: Dict = Depends(verify_admin_session)):
     """Alias para compatibilidad - redirige a statistics"""
-    return await get_evaluations_statistics(current_user)
+    try:
+        print(f"🔍 [STATS DEBUG] Usuario autenticado: {current_user}")
+        return await get_evaluations_statistics(current_user)
+    except Exception as e:
+        print(f"❌ [STATS DEBUG] Error en alias: {e}")
+        raise HTTPException(status_code=500, detail=f"Error en estadísticas: {str(e)}")
+
+@admin_router.get("/evaluations/stats-test")
+async def get_evaluations_stats_test():
+    """Test sin autenticación para debug"""
+    try:
+        print(f"🔍 [TEST DEBUG] Iniciando test sin autenticación...")
+        from ..excel_handler import ExcelHandler
+        excel_handler = ExcelHandler()
+        evaluations = await excel_handler.get_all_evaluations()
+        return {
+            "success": True,
+            "message": "Test exitoso",
+            "data": {
+                "total_evaluations": len(evaluations) if evaluations else 0,
+                "evaluations": evaluations[:5] if evaluations else []  # Solo las primeras 5
+            }
+        }
+    except Exception as e:
+        print(f"❌ [TEST DEBUG] Error en test: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 @admin_router.get("/evaluations/search")
 async def search_evaluations(
