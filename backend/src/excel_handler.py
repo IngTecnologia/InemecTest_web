@@ -452,7 +452,6 @@ class ExcelHandler:
                 # Calcular aprobación automática de conocimiento (≥80%)
                 score_percentage = evaluation.get('score_percentage', 0)
                 evaluation['aprobo_conocimiento'] = 'Sí' if score_percentage >= 80 else 'No'
-                print(f"🔍 Score: {score_percentage}, Aprobo Conocimiento: {evaluation['aprobo_conocimiento']}")
                 
                 evaluations.append(evaluation)
             

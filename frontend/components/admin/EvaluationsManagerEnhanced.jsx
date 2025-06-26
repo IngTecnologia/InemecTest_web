@@ -112,9 +112,12 @@ const EvaluationsManagerEnhanced = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
               textAlign: 'center'
             }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Tasa de Aprobación</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
-                {stats.approval_rate}%
+              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Aprobación Conocimiento</h3>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+                {stats.conocimiento?.approval_rate || stats.approval_rate}%
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                {stats.conocimiento?.approved_count || stats.approved_count} aprobados
               </div>
             </div>
             
@@ -125,9 +128,12 @@ const EvaluationsManagerEnhanced = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
               textAlign: 'center'
             }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Aprobados</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#059669' }}>
-                {stats.approved_count}
+              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Aprobación Aplicado</h3>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#059669' }}>
+                {stats.aplicado?.approval_rate || 0}%
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                {stats.aplicado?.approved_count || 0} aprobados
               </div>
             </div>
             
@@ -138,9 +144,12 @@ const EvaluationsManagerEnhanced = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
               textAlign: 'center'
             }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Reprobados</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626' }}>
-                {stats.failed_count}
+              <h3 style={{ margin: '0 0 0.5rem 0', color: '#333', fontSize: '0.9rem' }}>Total Reprobados</h3>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626' }}>
+                {stats.conocimiento?.failed_count || stats.failed_count}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                en conocimiento
               </div>
             </div>
           </div>
@@ -184,7 +193,7 @@ const EvaluationsManagerEnhanced = () => {
               <h3 style={{ margin: '0 0 1rem 0', color: '#333' }}>Evaluaciones Recientes</h3>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'auto 1fr 1fr auto auto',
+                gridTemplateColumns: 'auto 1fr 1fr auto auto auto auto',
                 gap: '1rem',
                 alignItems: 'center',
                 fontWeight: '600',
@@ -197,13 +206,15 @@ const EvaluationsManagerEnhanced = () => {
                 <span>Cédula</span>
                 <span>Nombre</span>
                 <span>Procedimiento</span>
-                <span>Resultado</span>
+                <span>Score</span>
+                <span>Conocimiento</span>
+                <span>Aplicado</span>
                 <span>Fecha</span>
               </div>
               {stats.recent_evaluations.slice(0, 8).map((evaluation, index) => (
                 <div key={index} style={{
                   display: 'grid',
-                  gridTemplateColumns: 'auto 1fr 1fr auto auto',
+                  gridTemplateColumns: 'auto 1fr 1fr auto auto auto auto',
                   gap: '1rem',
                   padding: '0.75rem',
                   borderBottom: '1px solid #e1e5e9',
@@ -213,11 +224,22 @@ const EvaluationsManagerEnhanced = () => {
                   <span style={{ fontWeight: '600', fontFamily: 'monospace' }}>{evaluation.cedula}</span>
                   <span>{evaluation.nombre}</span>
                   <span style={{ color: '#666' }}>{evaluation.procedure_codigo}</span>
+                  <span style={{ fontWeight: 'bold', color: '#667eea' }}>
+                    {evaluation.score_percentage}%
+                  </span>
                   <span style={{ 
-                    color: evaluation.aprobo === 'Sí' ? '#059669' : '#dc2626',
-                    fontWeight: 'bold'
+                    color: evaluation.aprobo_conocimiento === 'Sí' ? '#059669' : '#dc2626',
+                    fontWeight: 'bold',
+                    fontSize: '0.8rem'
                   }}>
-                    {evaluation.aprobo === 'Sí' ? '✅ Aprobó' : '❌ Reprobó'}
+                    {evaluation.aprobo_conocimiento === 'Sí' ? '✅' : '❌'}
+                  </span>
+                  <span style={{ 
+                    color: evaluation.aprobo_aplicado === 'Sí' ? '#059669' : '#dc2626',
+                    fontWeight: 'bold',
+                    fontSize: '0.8rem'
+                  }}>
+                    {evaluation.aprobo_aplicado === 'Sí' ? '✅' : '❌'}
                   </span>
                   <span style={{ fontSize: '0.8rem', color: '#666' }}>
                     {new Date(evaluation.completed_at).toLocaleDateString()}

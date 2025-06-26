@@ -1132,8 +1132,37 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
 
 @admin_router.get("/evaluations/stats")
 async def get_evaluations_stats_alias(current_user: Dict = Depends(verify_admin_session)):
-    """Alias para compatibilidad - redirige a statistics"""
-    return await get_evaluations_statistics(current_user)
+    """Alias para compatibilidad - estructura adaptada para frontend"""
+    # Obtener datos completos
+    full_response = await get_evaluations_statistics(current_user)
+    
+    # Adaptar estructura para compatibilidad con frontend actual
+    if full_response.get("success") and "data" in full_response:
+        data = full_response["data"]
+        
+        # Mantener estructura original pero agregar datos nuevos
+        adapted_data = {
+            "total_evaluations": data.get("total_evaluations", 0),
+            "by_campo": data.get("by_campo", {}),
+            "by_disciplina": data.get("by_disciplina", {}),
+            # Usar aprobación de conocimiento como principal para compatibilidad
+            "approval_rate": data.get("conocimiento", {}).get("approval_rate", 0),
+            "approved_count": data.get("conocimiento", {}).get("approved_count", 0),
+            "failed_count": data.get("conocimiento", {}).get("failed_count", 0),
+            # Agregar datos nuevos
+            "conocimiento": data.get("conocimiento", {}),
+            "aplicado": data.get("aplicado", {}),
+            "recent_evaluations": data.get("recent_evaluations", [])
+        }
+        
+        return {
+            "success": True,
+            "message": full_response.get("message", ""),
+            "data": adapted_data,
+            "timestamp": full_response.get("timestamp", "")
+        }
+    
+    return full_response
 
 @admin_router.get("/evaluations/search")
 async def search_evaluations(
