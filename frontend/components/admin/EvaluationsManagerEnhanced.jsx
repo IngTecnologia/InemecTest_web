@@ -193,28 +193,28 @@ const EvaluationsManagerEnhanced = () => {
               <h3 style={{ margin: '0 0 1rem 0', color: '#333' }}>Evaluaciones Recientes</h3>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'auto 1fr 1fr auto auto auto auto',
+                gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px',
                 gap: '1rem',
                 alignItems: 'center',
                 fontWeight: '600',
                 fontSize: '0.85rem',
                 color: '#666',
-                padding: '0.5rem',
+                padding: '0.75rem',
                 borderBottom: '2px solid #e1e5e9',
                 marginBottom: '0.5rem'
               }}>
                 <span>Cédula</span>
                 <span>Nombre</span>
                 <span>Procedimiento</span>
-                <span>Score</span>
-                <span>Conocimiento</span>
-                <span>Aplicado</span>
-                <span>Fecha</span>
+                <span style={{ textAlign: 'center' }}>Score</span>
+                <span style={{ textAlign: 'center' }}>Conocimiento</span>
+                <span style={{ textAlign: 'center' }}>Aplicado</span>
+                <span style={{ textAlign: 'center' }}>Fecha</span>
               </div>
               {stats.recent_evaluations.slice(0, 8).map((evaluation, index) => (
                 <div key={index} style={{
                   display: 'grid',
-                  gridTemplateColumns: 'auto 1fr 1fr auto auto auto auto',
+                  gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px',
                   gap: '1rem',
                   padding: '0.75rem',
                   borderBottom: '1px solid #e1e5e9',
@@ -224,24 +224,26 @@ const EvaluationsManagerEnhanced = () => {
                   <span style={{ fontWeight: '600', fontFamily: 'monospace' }}>{evaluation.cedula}</span>
                   <span>{evaluation.nombre}</span>
                   <span style={{ color: '#666' }}>{evaluation.procedure_codigo}</span>
-                  <span style={{ fontWeight: 'bold', color: '#667eea' }}>
+                  <span style={{ fontWeight: 'bold', color: '#667eea', textAlign: 'center' }}>
                     {evaluation.score_percentage}%
                   </span>
                   <span style={{ 
                     color: evaluation.aprobo_conocimiento === 'Sí' ? '#059669' : '#dc2626',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '1rem',
+                    textAlign: 'center'
                   }}>
                     {evaluation.aprobo_conocimiento === 'Sí' ? '✅' : '❌'}
                   </span>
                   <span style={{ 
                     color: evaluation.aprobo_aplicado === 'Sí' ? '#059669' : '#dc2626',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '1rem',
+                    textAlign: 'center'
                   }}>
                     {evaluation.aprobo_aplicado === 'Sí' ? '✅' : '❌'}
                   </span>
-                  <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#666', textAlign: 'center' }}>
                     {new Date(evaluation.completed_at).toLocaleDateString()}
                   </span>
                 </div>
