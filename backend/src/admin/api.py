@@ -298,7 +298,10 @@ async def scan_procedures():
             print(f"🔍 Debug - datos_completos keys: {item['datos_completos'].keys()}")
             
             try:
-                scanned_proc = ScannedProcedure(**item["datos_completos"])
+                # Import local explícito para evitar problemas de contexto en threading
+                from .models import ProcedureStatus as LocalProcedureStatus, ScannedProcedure as LocalScannedProcedure
+                
+                scanned_proc = LocalScannedProcedure(**item["datos_completos"])
                 print(f"✅ ScannedProcedure creado para {item['codigo']}")
             except Exception as e:
                 print(f"❌ Error creando ScannedProcedure: {e}")
@@ -310,7 +313,7 @@ async def scan_procedures():
                 nombre=item["nombre"],
                 version=item["version"],
                 archivo=item["archivo"],
-                estado=ProcedureStatus(item["estado"]),
+                estado=LocalProcedureStatus(item["estado"]),
                 tracking_key=item["tracking_key"],
                 datos_completos=scanned_proc,
                 fecha_agregado=get_current_timestamp(),
@@ -400,14 +403,17 @@ async def get_generation_queue():
             try:
                 print(f"🔍 [DEBUG] Procesando item {i+1}: {item.get('codigo', 'UNKNOWN')}")
                 
+                # Import local explícito para evitar problemas de contexto en threading
+                from .models import ProcedureStatus as LocalProcedureStatus, ScannedProcedure as LocalScannedProcedure
+                
                 queue_item = QueueItem(
                     codigo=item["codigo"],
                     nombre=item["nombre"],
                     version=item["version"],
                     archivo=item["archivo"],
-                    estado=ProcedureStatus(item["estado"]),
+                    estado=LocalProcedureStatus(item["estado"]),
                     tracking_key=item["tracking_key"],
-                    datos_completos=ScannedProcedure(**item["datos_completos"]),
+                    datos_completos=LocalScannedProcedure(**item["datos_completos"]),
                     fecha_agregado=get_current_timestamp(),
                     prioridad=1
                 )
