@@ -30,6 +30,12 @@ const EvaluationsManagerEnhanced = () => {
   const [availableDisciplinas, setAvailableDisciplinas] = useState([])
   const [availableProcedimientos, setAvailableProcedimientos] = useState([])
   
+  // Estados para autocomplete
+  const [disciplinaSearch, setDisciplinaSearch] = useState('')
+  const [procedimientoSearch, setProcedimientoSearch] = useState('')
+  const [showDisciplinaSuggestions, setShowDisciplinaSuggestions] = useState(false)
+  const [showProcedimientoSuggestions, setShowProcedimientoSuggestions] = useState(false)
+  
   // Estados de filtros
   const [filters, setFilters] = useState({
     campo: '',
@@ -87,6 +93,21 @@ const EvaluationsManagerEnhanced = () => {
 
     setAvailableProcedimientos(filtered)
   }, [procedures, filters.campo, filters.disciplina])
+
+  // Sincronizar campos de búsqueda con filtros
+  useEffect(() => {
+    if (!filters.disciplina) {
+      setDisciplinaSearch('')
+    } else if (disciplinaSearch !== filters.disciplina) {
+      setDisciplinaSearch(filters.disciplina)
+    }
+  }, [filters.disciplina])
+
+  useEffect(() => {
+    if (!filters.procedimiento) {
+      setProcedimientoSearch('')
+    }
+  }, [filters.procedimiento])
 
   const loadStats = async () => {
     try {
@@ -318,6 +339,50 @@ const EvaluationsManagerEnhanced = () => {
     return Object.values(filters).some(value => value !== '')
   }
 
+  // Funciones para autocomplete
+  const handleDisciplinaSearch = (value) => {
+    setDisciplinaSearch(value)
+    setShowDisciplinaSuggestions(true)
+    if (!value.trim()) {
+      updateFilter('disciplina', '')
+    }
+  }
+
+  const selectDisciplina = (disciplina) => {
+    setDisciplinaSearch(disciplina)
+    updateFilter('disciplina', disciplina)
+    setShowDisciplinaSuggestions(false)
+  }
+
+  const handleProcedimientoSearch = (value) => {
+    setProcedimientoSearch(value)
+    setShowProcedimientoSuggestions(true)
+    if (!value.trim()) {
+      updateFilter('procedimiento', '')
+    }
+  }
+
+  const selectProcedimiento = (procedimiento) => {
+    setProcedimientoSearch(`${procedimiento.codigo} - ${procedimiento.nombre}`)
+    updateFilter('procedimiento', procedimiento.codigo)
+    setShowProcedimientoSuggestions(false)
+  }
+
+  const filterDisciplinaSuggestions = () => {
+    if (!disciplinaSearch.trim()) return availableDisciplinas
+    return availableDisciplinas.filter(disciplina =>
+      disciplina.toLowerCase().includes(disciplinaSearch.toLowerCase())
+    )
+  }
+
+  const filterProcedimientoSuggestions = () => {
+    if (!procedimientoSearch.trim()) return availableProcedimientos.slice(0, 10)
+    return availableProcedimientos.filter(proc =>
+      proc.codigo.toLowerCase().includes(procedimientoSearch.toLowerCase()) ||
+      proc.nombre.toLowerCase().includes(procedimientoSearch.toLowerCase())
+    ).slice(0, 10)
+  }
+
   const renderFiltersPanel = () => (
     <div style={{
       background: '#f8f9fa',
@@ -395,44 +460,109 @@ const EvaluationsManagerEnhanced = () => {
           <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
             Disciplina:
           </label>
-          <select
-            value={filters.disciplina}
-            onChange={(e) => updateFilter('disciplina', e.target.value)}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '4px'
-            }}
-          >
-            <option value="">Todas las disciplinas</option>
-            {availableDisciplinas.map(disciplina => (
-              <option key={disciplina} value={disciplina}>{disciplina}</option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={disciplinaSearch}
+              onChange={(e) => handleDisciplinaSearch(e.target.value)}
+              onFocus={() => setShowDisciplinaSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowDisciplinaSuggestions(false), 200)}
+              placeholder="Buscar disciplina..."
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px'
+              }}
+            />
+            {showDisciplinaSuggestions && filterDisciplinaSuggestions().length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'white',
+                border: '1px solid #ddd',
+                borderTop: 'none',
+                borderRadius: '0 0 4px 4px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                zIndex: 1000
+              }}>
+                {filterDisciplinaSuggestions().map(disciplina => (
+                  <div
+                    key={disciplina}
+                    onClick={() => selectDisciplina(disciplina)}
+                    style={{
+                      padding: '0.5rem',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f0f0f0'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+                    onMouseLeave={(e) => e.target.style.background = 'white'}
+                  >
+                    {disciplina}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
             Procedimiento:
           </label>
-          <select
-            value={filters.procedimiento}
-            onChange={(e) => updateFilter('procedimiento', e.target.value)}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '4px'
-            }}
-          >
-            <option value="">Todos los procedimientos</option>
-            {availableProcedimientos.map(proc => (
-              <option key={proc.codigo} value={proc.codigo}>
-                {proc.codigo} - {proc.nombre}
-              </option>
-            ))}
-          </select>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={procedimientoSearch}
+              onChange={(e) => handleProcedimientoSearch(e.target.value)}
+              onFocus={() => setShowProcedimientoSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowProcedimientoSuggestions(false), 200)}
+              placeholder="Buscar por código o nombre..."
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px'
+              }}
+            />
+            {showProcedimientoSuggestions && filterProcedimientoSuggestions().length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'white',
+                border: '1px solid #ddd',
+                borderTop: 'none',
+                borderRadius: '0 0 4px 4px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                zIndex: 1000
+              }}>
+                {filterProcedimientoSuggestions().map(proc => (
+                  <div
+                    key={proc.codigo}
+                    onClick={() => selectProcedimiento(proc)}
+                    style={{
+                      padding: '0.75rem',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f0f0f0'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+                    onMouseLeave={(e) => e.target.style.background = 'white'}
+                  >
+                    <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{proc.codigo}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
+                      {proc.nombre.length > 60 ? proc.nombre.substring(0, 60) + '...' : proc.nombre}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div>
