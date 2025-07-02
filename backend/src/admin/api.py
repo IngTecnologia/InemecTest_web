@@ -1213,16 +1213,58 @@ async def search_evaluations(
             reverse=True
         )
         
-        # Aplicar límite
+        # Calcular estadísticas de los datos filtrados
+        filtered_stats = {}
+        if filtered_evaluations:
+            approved_conocimiento_count = 0
+            approved_aplicado_count = 0
+            stats_by_campo = {}
+            
+            for eval_data in filtered_evaluations:
+                # Procesar campo
+                campo_eval = eval_data.get("campo", "Sin campo")
+                if campo_eval:
+                    stats_by_campo[campo_eval] = stats_by_campo.get(campo_eval, 0) + 1
+                
+                # Contar aprobados conocimiento (automático ≥80%)
+                aprobo_conocimiento = eval_data.get("aprobo_conocimiento", "")
+                if str(aprobo_conocimiento).lower() in ["sí", "si", "yes", "true", "1"]:
+                    approved_conocimiento_count += 1
+                    
+                # Contar aprobados conocimiento aplicado (manual supervisor)
+                aprobo_aplicado = eval_data.get("aprobo", "")
+                if str(aprobo_aplicado).lower() in ["sí", "si", "yes", "true", "1"]:
+                    approved_aplicado_count += 1
+            
+            conocimiento_rate = (approved_conocimiento_count / len(filtered_evaluations)) * 100
+            aplicado_rate = (approved_aplicado_count / len(filtered_evaluations)) * 100
+            
+            filtered_stats = {
+                "total_evaluations": len(filtered_evaluations),
+                "by_campo": stats_by_campo,
+                "conocimiento": {
+                    "approval_rate": round(conocimiento_rate, 2),
+                    "approved_count": approved_conocimiento_count,
+                    "failed_count": len(filtered_evaluations) - approved_conocimiento_count
+                },
+                "aplicado": {
+                    "approval_rate": round(aplicado_rate, 2),
+                    "approved_count": approved_aplicado_count,
+                    "failed_count": len(filtered_evaluations) - approved_aplicado_count
+                }
+            }
+        
+        # Aplicar límite para la respuesta
         result = filtered_evaluations[:limit]
         
         return AdminResponse.create_safe(
             success=True,
-            message=f"Se encontraron {len(result)} evaluaciones",
+            message=f"Se encontraron {len(filtered_evaluations)} evaluaciones",
             data={
                 "evaluations": result,
                 "total_found": len(filtered_evaluations),
                 "total_returned": len(result),
+                "filtered_statistics": filtered_stats,
                 "filters_applied": {
                     "cedula": cedula,
                     "campo": campo,
