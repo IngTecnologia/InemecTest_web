@@ -717,6 +717,23 @@ const EvaluationsManagerEnhanced = () => {
                 <span style={{ textAlign: 'center' }}>Aplicado</span>
                 <span style={{ textAlign: 'center' }}>Fecha</span>
               </div>
+              
+              {hasActiveFilters() && filteredStats && filteredStats.recent_evaluations.length === 0 && (
+                <div style={{
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  color: '#666',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  border: '1px solid #e1e5e9',
+                  margin: '1rem 0'
+                }}>
+                  <div style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>🔍</div>
+                  <div style={{ fontWeight: '500', marginBottom: '0.25rem' }}>Sin resultados</div>
+                  <div style={{ fontSize: '0.85rem' }}>No hay evaluaciones que coincidan con los filtros aplicados</div>
+                </div>
+              )}
+              
               {(hasActiveFilters() && filteredStats ? filteredStats.recent_evaluations : stats.recent_evaluations).slice(0, 8).map((evaluation, index) => (
                 <div key={index} style={{
                   display: 'grid',
@@ -860,6 +877,22 @@ const EvaluationsManagerEnhanced = () => {
             <span>Resultado</span>
             <span>Fecha</span>
           </div>
+          
+          {evaluations.length === 0 && hasActiveFilters() && (
+            <div style={{
+              padding: '2rem',
+              textAlign: 'center',
+              color: '#666',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              border: '1px solid #e1e5e9',
+              margin: '1rem 0'
+            }}>
+              <div style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>📋</div>
+              <div style={{ fontWeight: '500', marginBottom: '0.25rem' }}>No se encontraron evaluaciones</div>
+              <div style={{ fontSize: '0.9rem' }}>No hay evaluaciones que coincidan con los filtros seleccionados</div>
+            </div>
+          )}
           
           {evaluations.map((evaluation, index) => (
             <div key={index} style={{
