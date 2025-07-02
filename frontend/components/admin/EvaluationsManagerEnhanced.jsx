@@ -7,6 +7,14 @@ import useAdminAuth from '../../hooks/useAdminAuth'
 
 const EvaluationsManagerEnhanced = () => {
   const { getAuthHeaders } = useAdminAuth()
+  
+  // Mapeo entre valores de evaluaciones y procedimientos
+  const campoMapping = {
+    'Cupiagua': 'Campo Cupiagua',
+    'Cusiana': 'Campo Cusiana', 
+    'Florena': 'Campo Floreña',
+    'Transversal': 'Campo General'
+  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [stats, setStats] = useState(null)
@@ -64,8 +72,9 @@ const EvaluationsManagerEnhanced = () => {
 
     // Filtrar por campo si está seleccionado
     if (filters.campo) {
+      const mappedCampo = campoMapping[filters.campo] || filters.campo
       filtered = filtered.filter(proc => 
-        proc.datos_completos?.campo?.toLowerCase() === filters.campo.toLowerCase()
+        proc.datos_completos?.campo === mappedCampo
       )
     }
 
@@ -180,7 +189,7 @@ const EvaluationsManagerEnhanced = () => {
     // Aplicar filtros
     if (filters.campo) {
       filtered = filtered.filter(evaluation => 
-        evaluation.campo?.toLowerCase().includes(filters.campo.toLowerCase())
+        evaluation.campo === filters.campo
       )
     }
     
