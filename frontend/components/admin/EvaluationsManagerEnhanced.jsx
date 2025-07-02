@@ -17,6 +17,11 @@ const EvaluationsManagerEnhanced = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   
+  // Estados para comboboxes dinámicos
+  const [procedures, setProcedures] = useState([])
+  const [availableDisciplinas, setAvailableDisciplinas] = useState([])
+  const [availableProcedimientos, setAvailableProcedimientos] = useState([])
+  
   // Estados de filtros
   const [filters, setFilters] = useState({
     campo: '',
@@ -31,12 +36,48 @@ const EvaluationsManagerEnhanced = () => {
   useEffect(() => {
     loadStats()
     loadAllEvaluations()
+    loadProcedures()
   }, [])
 
   // Aplicar filtros cuando cambien
   useEffect(() => {
     applyFilters()
   }, [filters, allEvaluations])
+
+  // Procesar procedimientos para extraer disciplinas y opciones dinámicas
+  useEffect(() => {
+    if (procedures.length > 0) {
+      // Extraer disciplinas únicas
+      const disciplinas = [...new Set(
+        procedures
+          .filter(proc => proc.datos_completos?.disciplina)
+          .map(proc => proc.datos_completos.disciplina)
+      )].sort()
+      
+      setAvailableDisciplinas(disciplinas)
+    }
+  }, [procedures])
+
+  // Filtrar procedimientos disponibles basado en campo y disciplina seleccionados
+  useEffect(() => {
+    let filtered = procedures
+
+    // Filtrar por campo si está seleccionado
+    if (filters.campo) {
+      filtered = filtered.filter(proc => 
+        proc.datos_completos?.campo?.toLowerCase() === filters.campo.toLowerCase()
+      )
+    }
+
+    // Filtrar por disciplina si está seleccionada
+    if (filters.disciplina) {
+      filtered = filtered.filter(proc => 
+        proc.datos_completos?.disciplina === filters.disciplina
+      )
+    }
+
+    setAvailableProcedimientos(filtered)
+  }, [procedures, filters.campo, filters.disciplina])
 
   const loadStats = async () => {
     try {
@@ -116,6 +157,21 @@ const EvaluationsManagerEnhanced = () => {
     }
   }
 
+  const loadProcedures = async () => {
+    try {
+      const response = await fetch('/api/v1/procedures', {
+        headers: getAuthHeaders()
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        setProcedures(result.procedures || [])
+      }
+    } catch (error) {
+      console.error('Error cargando procedimientos:', error)
+    }
+  }
+
   const applyFilters = () => {
     if (!allEvaluations.length) return
 
@@ -129,15 +185,16 @@ const EvaluationsManagerEnhanced = () => {
     }
     
     if (filters.disciplina) {
-      filtered = filtered.filter(evaluation => 
-        evaluation.disciplina?.toLowerCase().includes(filters.disciplina.toLowerCase())
-      )
+      filtered = filtered.filter(evaluation => {
+        // Buscar el procedimiento correspondiente para obtener la disciplina
+        const procedure = procedures.find(proc => proc.codigo === evaluation.procedure_codigo)
+        return procedure?.datos_completos?.disciplina === filters.disciplina
+      })
     }
     
     if (filters.procedimiento) {
       filtered = filtered.filter(evaluation => 
-        evaluation.procedure_codigo?.toLowerCase().includes(filters.procedimiento.toLowerCase()) ||
-        evaluation.procedure_nombre?.toLowerCase().includes(filters.procedimiento.toLowerCase())
+        evaluation.procedure_codigo === filters.procedimiento
       )
     }
     
@@ -219,7 +276,21 @@ const EvaluationsManagerEnhanced = () => {
   }
 
   const updateFilter = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
+    setFilters(prev => {
+      const newFilters = { ...prev, [key]: value }
+      
+      // Limpiar filtros dependientes
+      if (key === 'campo') {
+        // Si cambia el campo, limpiar disciplina y procedimiento
+        newFilters.disciplina = ''
+        newFilters.procedimiento = ''
+      } else if (key === 'disciplina') {
+        // Si cambia la disciplina, limpiar procedimiento
+        newFilters.procedimiento = ''
+      }
+      
+      return newFilters
+    })
   }
 
   const clearFilters = () => {
@@ -315,36 +386,44 @@ const EvaluationsManagerEnhanced = () => {
           <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
             Disciplina:
           </label>
-          <input
-            type="text"
+          <select
             value={filters.disciplina}
             onChange={(e) => updateFilter('disciplina', e.target.value)}
-            placeholder="Ej: Nuevas Tecnologías"
             style={{
               width: '100%',
               padding: '0.5rem',
               border: '1px solid #ddd',
               borderRadius: '4px'
             }}
-          />
+          >
+            <option value="">Todas las disciplinas</option>
+            {availableDisciplinas.map(disciplina => (
+              <option key={disciplina} value={disciplina}>{disciplina}</option>
+            ))}
+          </select>
         </div>
 
         <div>
           <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500', fontSize: '0.9rem' }}>
             Procedimiento:
           </label>
-          <input
-            type="text"
+          <select
             value={filters.procedimiento}
             onChange={(e) => updateFilter('procedimiento', e.target.value)}
-            placeholder="Código o nombre"
             style={{
               width: '100%',
               padding: '0.5rem',
               border: '1px solid #ddd',
               borderRadius: '4px'
             }}
-          />
+          >
+            <option value="">Todos los procedimientos</option>
+            {availableProcedimientos.map(proc => (
+              <option key={proc.codigo} value={proc.codigo}>
+                {proc.codigo} - {proc.nombre}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
