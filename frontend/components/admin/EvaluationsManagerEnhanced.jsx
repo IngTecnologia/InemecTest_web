@@ -162,8 +162,15 @@ const EvaluationsManagerEnhanced = () => {
       )
     }
 
-    // Calcular estadísticas filtradas
-    calculateFilteredStats(filtered)
+    // Actualizar evaluaciones mostradas y calcular estadísticas filtradas
+    setEvaluations(filtered)
+    
+    // Solo calcular estadísticas filtradas si hay filtros activos
+    if (hasActiveFilters()) {
+      calculateFilteredStats(filtered)
+    } else {
+      setFilteredStats(null)
+    }
   }
 
   const calculateFilteredStats = (filteredEvaluations) => {
