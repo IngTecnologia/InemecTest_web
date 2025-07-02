@@ -1100,7 +1100,7 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
                     "procedure_codigo": str(eval_data.get("procedure_codigo", "")),
                     "score_percentage": eval_data.get("score_percentage", 0),
                     "aprobo_conocimiento": str(eval_data.get("aprobo_conocimiento", "")),
-                    "aprobo_aplicado": str(eval_data.get("aprobo", "")),
+                    "aprobo": str(eval_data.get("aprobo", "")),
                     "completed_at": str(eval_data.get("completed_at", ""))
                 })
         except Exception as e:

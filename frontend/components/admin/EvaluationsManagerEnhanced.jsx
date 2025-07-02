@@ -106,7 +106,10 @@ const EvaluationsManagerEnhanced = () => {
       
       if (response.ok) {
         const result = await response.json()
-        setAllEvaluations(result.data.evaluations || [])
+        const evaluations = result.data.evaluations || []
+        setAllEvaluations(evaluations)
+        // Inicializar evaluations mostradas con todos los datos
+        setEvaluations(evaluations)
       }
     } catch (error) {
       console.error('Error cargando evaluaciones:', error)
