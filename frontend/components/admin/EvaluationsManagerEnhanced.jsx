@@ -158,7 +158,7 @@ const EvaluationsManagerEnhanced = () => {
     
     if (filters.aproboAplicado) {
       filtered = filtered.filter(evaluation => 
-        evaluation.aprobo_aplicado === filters.aproboAplicado
+        evaluation.aprobo === filters.aproboAplicado
       )
     }
 
@@ -183,7 +183,7 @@ const EvaluationsManagerEnhanced = () => {
       
       // Contar aprobados
       if (evaluation.aprobo_conocimiento === 'Sí') approved_conocimiento_count++
-      if (evaluation.aprobo_aplicado === 'Sí') approved_aplicado_count++
+      if (evaluation.aprobo === 'Sí') approved_aplicado_count++
     })
 
     const conocimiento_rate = (approved_conocimiento_count / filteredEvaluations.length) * 100
@@ -644,12 +644,12 @@ const EvaluationsManagerEnhanced = () => {
                     {evaluation.aprobo_conocimiento === 'Sí' ? '✅' : '❌'}
                   </span>
                   <span style={{ 
-                    color: evaluation.aprobo_aplicado === 'Sí' ? '#059669' : '#dc2626',
+                    color: evaluation.aprobo === 'Sí' ? '#059669' : '#dc2626',
                     fontWeight: 'bold',
                     fontSize: '1rem',
                     textAlign: 'center'
                   }}>
-                    {evaluation.aprobo_aplicado === 'Sí' ? '✅' : '❌'}
+                    {evaluation.aprobo === 'Sí' ? '✅' : '❌'}
                   </span>
                   <span style={{ fontSize: '0.8rem', color: '#666', textAlign: 'center' }}>
                     {new Date(evaluation.completed_at).toLocaleDateString()}
