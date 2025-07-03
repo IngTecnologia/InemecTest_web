@@ -21,6 +21,18 @@ ADMIN_USERS = {
         "permissions": ["full_access"],
         "active": True
     },
+    "Jesús David Cotes": {
+        "name": "Administrador Principal",
+        "code": "Inemec2025",
+        "permissions": ["full_access"],
+        "active": True
+    },
+    "Leidy Katerine Castañeda": {
+        "name": "Administrador Principal",
+        "code": "Disopvpi2025",
+        "permissions": ["full_access"],
+        "active": True
+    },
     "supervisor": {
         "name": "Supervisor",
         "code": "SUPER2024", 
