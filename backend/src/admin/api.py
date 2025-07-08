@@ -1092,6 +1092,7 @@ async def get_evaluations_statistics(current_user: Dict = Depends(verify_admin_s
                 reverse=True
             )
             # Solo incluir campos básicos para evitar problemas de serialización
+            # Limitar a 10 solo para evaluaciones recientes del dashboard
             for eval_data in sorted_evaluations[:10]:
                 recent_evaluations.append({
                     "evaluation_id": str(eval_data.get("evaluation_id", "")),
@@ -1175,7 +1176,7 @@ async def search_evaluations(
     cedula: str = Query(None, description="Búsqueda por cédula"),
     campo: str = Query(None, description="Filtro por campo"),
     procedure_codigo: str = Query(None, description="Filtro por código de procedimiento"),
-    limit: int = Query(50, description="Límite de resultados"),
+    limit: int = Query(None, description="Límite de resultados (None = todos)"),
     current_user: Dict = Depends(verify_admin_session)
 ):
     """Buscar evaluaciones con filtros"""
@@ -1254,8 +1255,11 @@ async def search_evaluations(
                 }
             }
         
-        # Aplicar límite para la respuesta
-        result = filtered_evaluations[:limit]
+        # Aplicar límite para la respuesta solo si se especifica
+        if limit is not None:
+            result = filtered_evaluations[:limit]
+        else:
+            result = filtered_evaluations
         
         return AdminResponse.create_safe(
             success=True,
