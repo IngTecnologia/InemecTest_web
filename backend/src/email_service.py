@@ -52,11 +52,19 @@ class EmailService:
             
             # Adjuntar logo si existe
             logo_path = Path(__file__).parent.parent.parent / "Logo-Inemec.jpg"
+            print(f"🔍 Buscando logo en: {logo_path}")
+            print(f"🔍 Logo existe: {logo_path.exists()}")
+            
             if logo_path.exists():
                 with open(logo_path, 'rb') as f:
-                    img = MIMEImage(f.read())
+                    img_data = f.read()
+                    img = MIMEImage(img_data)
                     img.add_header('Content-ID', '<logo>')
+                    img.add_header('Content-Disposition', 'inline', filename='logo.jpg')
                     msg.attach(img)
+                    print("✅ Logo adjuntado exitosamente")
+            else:
+                print("❌ Logo no encontrado")
             
             # Enviar correo
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
@@ -130,7 +138,7 @@ class EmailService:
                     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                 }}
                 .header {{ 
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(135deg, #c62828 0%, #8d1e1e 100%);
                     color: white;
                     padding: 2rem;
                     text-align: center;
@@ -234,6 +242,17 @@ class EmailService:
                     </p>
                 </div>
                 
+                <div class="email-intro">
+                    <div style="padding: 1.5rem; background: #f8f9fa; border-left: 4px solid #c62828; margin: 1rem 0;">
+                        <p style="margin: 0; font-size: 1rem; color: #333;">
+                            <strong>Estimado(a) evaluado(a),</strong>
+                        </p>
+                        <p style="margin: 0.5rem 0; font-size: 0.95rem; color: #666;">
+                            {email_intro_html}
+                        </p>
+                    </div>
+                </div>
+                
                 <div class="content">
                     <h2>Detalles de tu Evaluación</h2>
                     
@@ -288,9 +307,11 @@ class EmailService:
                 </div>
                 
                 <div class="email-footer">
-                    <p><strong>Estimado(a) evaluado(a),</strong></p>
-                    <p>{email_intro_html}</p>
-                    <p style="margin-top: 1.5rem;">{email_footer_html}</p>
+                    <div style="padding: 1.5rem; background: #f8f9fa; border-top: 2px solid #c62828; margin-top: 2rem; text-align: center;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                            {email_footer_html}
+                        </p>
+                    </div>
                 </div>
             </div>
         </body>

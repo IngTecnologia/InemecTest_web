@@ -434,7 +434,7 @@ const EvaluationForm = () => {
   const renderSuccessPage = () => (
     <div className="form-container" style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #c62828 0%, #8d1e1e 100%)',
         color: 'white',
         padding: '2rem',
         borderRadius: '12px',
