@@ -118,7 +118,7 @@ class ExcelSyncManager:
         ws_quest = wb.create_sheet(title=DATA_SHEETS["questions"]["name"])
         
         # Headers para Preguntas
-        headers_quest = ["Código Procedimiento", "Pregunta", "Opción A", "Opción B", "Opción C", "Opción D"]
+        headers_quest = ["Código Procedimiento", "Versión Procedimiento", "Pregunta", "Opción A", "Opción B", "Opción C", "Opción D"]
         for i, header in enumerate(headers_quest, 1):
             cell = ws_quest.cell(row=1, column=i, value=header)
             cell.font = Font(bold=True)
@@ -211,7 +211,7 @@ class ExcelSyncManager:
                 df_quest = pd.read_excel(self.data_file, sheet_name=DATA_SHEETS["questions"]["name"])
             except Exception:
                 # Si no existe la hoja, crear DataFrame vacío
-                df_quest = pd.DataFrame(columns=["Código Procedimiento", "Pregunta", "Opción A", "Opción B", "Opción C", "Opción D"])
+                df_quest = pd.DataFrame(columns=["Código Procedimiento", "Versión Procedimiento", "Pregunta", "Opción A", "Opción B", "Opción C", "Opción D"])
             
             # Preparar nuevas preguntas
             new_questions = []
@@ -219,6 +219,7 @@ class ExcelSyncManager:
                 if question.status.value in ["completed", "needs_correction"]:  # Solo preguntas válidas
                     new_row = {
                         "Código Procedimiento": question.procedure_codigo,
+                        "Versión Procedimiento": question.version_proc,  # Agregar versión del procedimiento
                         "Pregunta": question.pregunta,
                         "Opción A": question.opciones[0],  # Opción correcta siempre en A
                         "Opción B": question.opciones[1],

@@ -84,11 +84,12 @@ PROCEDURES_COLUMNS = {
 # Columnas para hoja de Preguntas
 QUESTIONS_COLUMNS = {
     "procedure_codigo": "A",  # Código del procedimiento al que pertenece
-    "question_text": "B",    # Texto de la pregunta
-    "option_a": "C",         # Opción A
-    "option_b": "D",         # Opción B
-    "option_c": "E",         # Opción C
-    "option_d": "F"         # Opción D
+    "procedure_version": "B", # Versión del procedimiento
+    "question_text": "C",    # Texto de la pregunta
+    "option_a": "D",         # Opción A
+    "option_b": "E",         # Opción B
+    "option_c": "F",         # Opción C
+    "option_d": "G"         # Opción D
 }
 
 # =============================================================================

@@ -122,7 +122,7 @@ class ExcelHandler:
         return None
     
     async def get_questions_by_procedure(self, procedure_codigo: str) -> List[Dict[str, Any]]:
-        """Obtener preguntas de un procedimiento específico"""
+        """Obtener preguntas de un procedimiento específico - SOLO VERSIÓN MÁS RECIENTE"""
         try:
             if not self.data_file.exists():
                 print(f"⚠️ Archivo de datos no encontrado: {self.data_file}")
@@ -135,36 +135,114 @@ class ExcelHandler:
             print(f"🔍 DEBUG - Buscando preguntas para: '{procedure_codigo}'")
             print(f"🔍 DEBUG - Columnas Excel: {list(df.columns)}")
             print(f"🔍 DEBUG - Total filas: {len(df)}")
-            print(f"🔍 DEBUG - Configuración columna procedure_codigo: {QUESTIONS_COLUMNS['procedure_codigo']}")
-            print(f"🔍 DEBUG - Índice columna: {self._get_col_index(QUESTIONS_COLUMNS['procedure_codigo'])}")
             
-            # Mostrar primeras 3 filas de la columna procedure_codigo
-            if not df.empty:
-                proc_col_index = self._get_col_index(QUESTIONS_COLUMNS["procedure_codigo"])
-                print(f"🔍 DEBUG - Primeros valores columna A:")
-                for i in range(min(3, len(df))):
-                    val = str(df.iloc[i, proc_col_index]).strip()
-                    print(f"   Fila {i+2}: '{val}' (tipo: {type(df.iloc[i, proc_col_index])})")
+            # Verificar si existe la columna de versión
+            has_version_column = "Versión Procedimiento" in df.columns or len(df.columns) > 6
             
+            if has_version_column:
+                print(f"🔍 DEBUG - Archivo tiene columna de versión, usando solo versión más reciente")
+                return await self._get_questions_latest_version(df, procedure_codigo)
+            else:
+                print(f"🔍 DEBUG - Archivo sin columna de versión, usando lógica legacy")
+                return await self._get_questions_legacy(df, procedure_codigo)
+            
+        except Exception as e:
+            print(f"❌ Error leyendo preguntas para {procedure_codigo}: {e}")
+            return []
+
+    async def _get_questions_latest_version(self, df: pd.DataFrame, procedure_codigo: str) -> List[Dict[str, Any]]:
+        """Obtener preguntas de la versión más reciente del procedimiento"""
+        try:
+            # Filtrar por código de procedimiento
+            proc_col_index = self._get_col_index(QUESTIONS_COLUMNS["procedure_codigo"])
+            version_col_index = self._get_col_index(QUESTIONS_COLUMNS["procedure_version"])
+            
+            # Filtrar filas del procedimiento
+            matching_rows = []
+            for index, row in df.iterrows():
+                if pd.isna(row.iloc[0]) or str(row.iloc[0]).strip() == "":
+                    continue
+                
+                row_procedure_codigo = str(row.iloc[proc_col_index]).strip()
+                if row_procedure_codigo.upper() == procedure_codigo.upper():
+                    version = row.iloc[version_col_index] if version_col_index < len(row) else 1
+                    try:
+                        version = int(version) if not pd.isna(version) else 1
+                    except (ValueError, TypeError):
+                        version = 1
+                    
+                    matching_rows.append({
+                        'index': index,
+                        'version': version,
+                        'row': row
+                    })
+            
+            if not matching_rows:
+                print(f"🔍 DEBUG - No se encontraron preguntas para {procedure_codigo}")
+                return []
+            
+            # Encontrar versión más reciente
+            latest_version = max(matching_rows, key=lambda x: x['version'])['version']
+            print(f"🔍 DEBUG - Versión más reciente encontrada: {latest_version}")
+            
+            # Filtrar solo preguntas de la versión más reciente
+            latest_questions = [row for row in matching_rows if row['version'] == latest_version]
+            
+            # Convertir a formato de pregunta
+            questions = []
+            question_id = 1
+            
+            for item in latest_questions:
+                row = item['row']
+                try:
+                    question = {
+                        "id": question_id,
+                        "procedure_codigo": procedure_codigo,
+                        "procedure_version": latest_version,
+                        "question_text": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["question_text"])]).strip(),
+                        "option_a": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_a"])]).strip(),
+                        "option_b": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_b"])]).strip(),
+                        "option_c": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_c"])]).strip(),
+                        "option_d": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_d"])]).strip(),
+                        "correct_answer": "A"  # ← SIEMPRE A, ya que Option_A es la correcta
+                    }
+                    
+                    # Validar que la pregunta esté completa
+                    if (question["question_text"] and question["question_text"] != "nan"):
+                        questions.append(question)
+                        question_id += 1
+                        print(f"🔍 DEBUG - Pregunta v{latest_version} añadida: {question['question_text'][:50]}...")
+                    
+                except Exception as e:
+                    print(f"⚠️ Error procesando pregunta versión {latest_version}: {e}")
+                    continue
+            
+            print(f"✅ Cargadas {len(questions)} preguntas para {procedure_codigo} v{latest_version}")
+            return questions
+            
+        except Exception as e:
+            print(f"❌ Error procesando preguntas con versión: {e}")
+            return []
+
+    async def _get_questions_legacy(self, df: pd.DataFrame, procedure_codigo: str) -> List[Dict[str, Any]]:
+        """Obtener preguntas usando lógica legacy (sin versiones)"""
+        try:
             questions = []
             question_id = 1
             
             for index, row in df.iterrows():
                 # Saltar filas vacías
                 if pd.isna(row.iloc[0]) or str(row.iloc[0]).strip() == "":
-                    print(f"🔍 DEBUG - Saltando fila vacía {index + 2}")
                     continue
                 
                 try:
                     row_procedure_codigo = str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["procedure_codigo"])]).strip()
-                    print(f"🔍 DEBUG - Fila {index + 2}: Comparando '{row_procedure_codigo}' vs '{procedure_codigo}'")
                     
                     if row_procedure_codigo.upper() == procedure_codigo.upper():
-                        print(f"🔍 DEBUG - ¡MATCH! Procesando pregunta de fila {index + 2}")
-                        
                         question = {
                             "id": question_id,
                             "procedure_codigo": row_procedure_codigo,
+                            "procedure_version": 1,  # Versión por defecto
                             "question_text": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["question_text"])]).strip(),
                             "option_a": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_a"])]).strip(),
                             "option_b": str(row.iloc[self._get_col_index(QUESTIONS_COLUMNS["option_b"])]).strip(),
@@ -173,27 +251,20 @@ class ExcelHandler:
                             "correct_answer": "A"  # ← SIEMPRE A, ya que Option_A es la correcta
                         }
                         
-                        print(f"🔍 DEBUG - Pregunta creada: {question}")
-                        
                         # Validar que la pregunta esté completa
                         if (question["question_text"] and question["question_text"] != "nan"):
                             questions.append(question)
                             question_id += 1
-                            print(f"🔍 DEBUG - Pregunta añadida exitosamente")
-                        else:
-                            print(f"🔍 DEBUG - Pregunta rechazada: question_text inválido")
-                    else:
-                        print(f"🔍 DEBUG - No match: '{row_procedure_codigo}' != '{procedure_codigo}'")
                             
                 except Exception as e:
-                    print(f"⚠️ Error procesando pregunta en fila {index + 2}: {e}")
+                    print(f"⚠️ Error procesando pregunta legacy en fila {index + 2}: {e}")
                     continue
             
-            print(f"✅ Cargadas {len(questions)} preguntas para {procedure_codigo}")
+            print(f"✅ Cargadas {len(questions)} preguntas legacy para {procedure_codigo}")
             return questions
             
         except Exception as e:
-            print(f"❌ Error leyendo preguntas para {procedure_codigo}: {e}")
+            print(f"❌ Error procesando preguntas legacy: {e}")
             return []
     
     # =================================================================
