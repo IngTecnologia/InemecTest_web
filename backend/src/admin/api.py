@@ -1509,12 +1509,78 @@ async def upload_procedures(
                 file_content = await file.read()
                 await file.seek(0)  # Reset para uso posterior
                 
-                # Criterio 2: Validar contenido del archivo (opcional - se puede mejorar)
-                # Por ahora, validamos que el archivo tenga contenido
+                # Criterio 2: Validar contenido del archivo
                 if len(file_content) == 0:
                     result["status"] = "error"
                     result["message"] = "Archivo vacío"
                     result["details"] = "El archivo no contiene datos"
+                    results.append(result)
+                    continue
+                
+                # Criterio 1 y 2: Validar código y versión internos del documento
+                try:
+                    # Guardar temporalmente el archivo para procesarlo
+                    import tempfile
+                    from docx import Document
+                    
+                    with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
+                        temp_file.write(file_content)
+                        temp_file_path = temp_file.name
+                    
+                    # Extraer datos del encabezado del documento
+                    try:
+                        doc = Document(temp_file_path)
+                        header = doc.sections[0].header
+                        tables = header.tables
+                        
+                        if not tables:
+                            result["status"] = "error"
+                            result["message"] = "Formato inválido"
+                            result["details"] = "El documento no contiene tabla de encabezado"
+                            results.append(result)
+                            continue
+                        
+                        tabla = tables[0]
+                        codigo_interno = tabla.cell(0, 2).text.upper().strip().replace("CÓDIGO:", "").replace("CODIGO:", "").strip()
+                        version_interna = tabla.cell(1, 2).text.upper().strip().replace("VERSIÓN:", "").replace("VERSION:", "").strip()
+                        
+                        # Validar que el código del archivo coincida con el código interno
+                        if codigo != codigo_interno:
+                            result["status"] = "error"
+                            result["message"] = "Código no coincide"
+                            result["details"] = f"Código del archivo ({codigo}) no coincide con código interno ({codigo_interno})"
+                            results.append(result)
+                            continue
+                        
+                        # Validar que la versión del archivo coincida con la versión interna
+                        try:
+                            version_interna_int = int(version_interna)
+                        except (ValueError, TypeError):
+                            result["status"] = "error"
+                            result["message"] = "Versión interna inválida"
+                            result["details"] = f"La versión interna ({version_interna}) no es un número válido"
+                            results.append(result)
+                            continue
+                        
+                        if version != version_interna_int:
+                            result["status"] = "error"
+                            result["message"] = "Versión no coincide"
+                            result["details"] = f"Versión del archivo ({version}) no coincide con versión interna ({version_interna_int})"
+                            results.append(result)
+                            continue
+                        
+                    finally:
+                        # Limpiar archivo temporal
+                        import os
+                        try:
+                            os.unlink(temp_file_path)
+                        except:
+                            pass
+                            
+                except Exception as e:
+                    result["status"] = "error"
+                    result["message"] = "Error validando documento"
+                    result["details"] = f"Error procesando documento: {str(e)}"
                     results.append(result)
                     continue
                 
