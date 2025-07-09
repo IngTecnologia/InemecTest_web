@@ -291,6 +291,19 @@ async def scan_procedures():
         
         print(f"🔍 Debug - Resultado scanner: {resultado.keys()}")
         
+        # Validar que el resultado tenga la estructura esperada
+        if not isinstance(resultado, dict):
+            raise ValueError("El scanner no devolvió un diccionario")
+        
+        required_keys = ["success", "message", "cola_generacion"]
+        missing_keys = [key for key in required_keys if key not in resultado]
+        if missing_keys:
+            raise ValueError(f"El resultado del scanner no tiene las claves requeridas: {missing_keys}")
+        
+        # Asegurar que archivos_encontrados esté presente
+        if "archivos_encontrados" not in resultado:
+            resultado["archivos_encontrados"] = len(resultado.get("cola_generacion", []))
+        
         # Convertir resultado a modelo Pydantic
         queue_items = []
         for i, item in enumerate(resultado["cola_generacion"]):
@@ -338,9 +351,19 @@ async def scan_procedures():
         print(f"❌ Error completo en scan: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error escaneando procedimientos: {str(e)}"
+        
+        # Devolver respuesta de error estructurada en lugar de HTTPException
+        return ScanResult(
+            success=False,
+            message=f"Error escaneando procedimientos: {str(e)}",
+            archivos_encontrados=0,
+            procedimientos_nuevos=0,
+            procedimientos_ya_procesados=0,
+            total_procedimientos=0,
+            cola_generacion=[],
+            tracking_file="",
+            timestamp=datetime.now().isoformat(),
+            scan_duration=0.0
         )
 
 @admin_router.get("/queue/simple")
