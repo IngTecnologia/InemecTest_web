@@ -3,12 +3,12 @@
  */
 
 import React from 'react'
-import EvaluationsManagerEnhanced from '../../components/admin/EvaluationsManagerEnhanced'
+import EvaluationsManager from '../../components/admin/EvaluationsManager'
 
 const AdminEvaluationsPage = () => {
   return (
     <div className="admin-page">
-      <EvaluationsManagerEnhanced />
+      <EvaluationsManager />
     </div>
   )
 }

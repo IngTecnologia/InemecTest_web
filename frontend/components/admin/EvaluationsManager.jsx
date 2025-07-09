@@ -28,7 +28,7 @@ const EvaluationsManager = () => {
   const loadStats = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/v1/admin/evaluations/stats', {
+      const response = await fetch('/api/v1/admin/evaluations/statistics', {
         headers: getAuthHeaders()
       })
       
@@ -61,7 +61,7 @@ const EvaluationsManager = () => {
       
       if (response.ok) {
         const result = await response.json()
-        setEvaluations(result.data.evaluations)
+        setEvaluations(result.data.evaluations || [])
         setError('')
       } else {
         setError('Error buscando evaluaciones')
@@ -185,91 +185,123 @@ const EvaluationsManager = () => {
     </div>
   )
 
-  const renderSearch = () => (
-    <div className="evaluations-search">
-      <h2>🔍 Buscar Evaluaciones</h2>
-      
-      <div className="search-filters">
-        <div className="filter-group">
-          <label>Cédula:</label>
-          <input
-            type="text"
-            value={filters.cedula}
-            onChange={(e) => setFilters({...filters, cedula: e.target.value})}
-            placeholder="Número de cédula"
-          />
-        </div>
+  const renderSearch = () => {
+    // Cargar todas las evaluaciones al acceder al tab
+    React.useEffect(() => {
+      if (activeTab === 'search' && evaluations.length === 0) {
+        loadAllEvaluations()
+      }
+    }, [activeTab])
+
+    const loadAllEvaluations = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/v1/admin/evaluations/search', {
+          headers: getAuthHeaders()
+        })
         
-        <div className="filter-group">
-          <label>Campo:</label>
-          <select
-            value={filters.campo}
-            onChange={(e) => setFilters({...filters, campo: e.target.value})}
-          >
-            <option value="">Todos los campos</option>
-            <option value="Cusiana">Cusiana</option>
-            <option value="Cupiagua">Cupiagua</option>
-            <option value="Floreña">Floreña</option>
-            <option value="Transversal">Transversal</option>
-          </select>
-        </div>
+        if (response.ok) {
+          const result = await response.json()
+          setEvaluations(result.data.evaluations || [])
+        } else {
+          setError('Error cargando evaluaciones')
+        }
+      } catch (error) {
+        setError('Error de conexión')
+        console.error('Error:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    return (
+      <div className="evaluations-search">
+        <h2>🔍 Buscar Evaluaciones</h2>
         
-        <div className="filter-group">
-          <label>Código de Procedimiento:</label>
-          <input
-            type="text"
-            value={filters.procedure_codigo}
-            onChange={(e) => setFilters({...filters, procedure_codigo: e.target.value})}
-            placeholder="ej: OP-001"
-          />
-        </div>
-        
-        <div className="filter-actions">
-          <button onClick={searchEvaluations} disabled={loading}>
-            {loading ? 'Buscando...' : 'Buscar'}
-          </button>
-          <button onClick={clearFilters}>Limpiar</button>
-        </div>
-      </div>
-      
-      {evaluations.length > 0 && (
-        <div className="search-results">
-          <h3>Resultados ({evaluations.length})</h3>
-          <div className="evaluations-table">
-            <div className="table-header">
-              <span>Cédula</span>
-              <span>Nombre</span>
-              <span>Campo</span>
-              <span>Procedimiento</span>
-              <span>Resultado</span>
-              <span>Fecha</span>
-              <span>Acciones</span>
-            </div>
-            {evaluations.map((evaluation, index) => (
-              <div key={index} className="table-row">
-                <span>{evaluation.cedula}</span>
-                <span>{evaluation.nombre}</span>
-                <span>{evaluation.campo}</span>
-                <span>{evaluation.procedure_codigo}</span>
-                <span className={`result ${evaluation.aprobo === 'Sí' ? 'approved' : 'failed'}`}>
-                  {evaluation.aprobo === 'Sí' ? 'Aprobado' : 'Reprobado'}
-                </span>
-                <span>{new Date(evaluation.completed_at).toLocaleDateString()}</span>
-                <span>
-                  <button 
-                    onClick={() => loadEvaluationReport(evaluation.evaluation_id)}
-                    className="btn-small"
-                  >
-                    Ver Reporte
-                  </button>
-                </span>
-              </div>
-            ))}
+        <div className="search-filters">
+          <div className="filter-group">
+            <label>Cédula:</label>
+            <input
+              type="text"
+              value={filters.cedula}
+              onChange={(e) => setFilters({...filters, cedula: e.target.value})}
+              placeholder="Número de cédula"
+            />
+          </div>
+          
+          <div className="filter-group">
+            <label>Campo:</label>
+            <select
+              value={filters.campo}
+              onChange={(e) => setFilters({...filters, campo: e.target.value})}
+            >
+              <option value="">Todos los campos</option>
+              <option value="Cusiana">Cusiana</option>
+              <option value="Cupiagua">Cupiagua</option>
+              <option value="Floreña">Floreña</option>
+              <option value="Transversal">Transversal</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Código de Procedimiento:</label>
+            <input
+              type="text"
+              value={filters.procedure_codigo}
+              onChange={(e) => setFilters({...filters, procedure_codigo: e.target.value})}
+              placeholder="ej: OP-001"
+            />
+          </div>
+          
+          <div className="filter-actions">
+            <button onClick={searchEvaluations} disabled={loading}>
+              {loading ? 'Buscando...' : 'Buscar'}
+            </button>
+            <button onClick={clearFilters}>Limpiar</button>
           </div>
         </div>
-      )}
-    </div>
-  )
+        
+        {loading && <div className="loading">Cargando evaluaciones...</div>}
+        
+        {evaluations.length > 0 && (
+          <div className="search-results">
+            <h3>Resultados ({evaluations.length})</h3>
+            <div className="evaluations-table">
+              <div className="table-header">
+                <span>Cédula</span>
+                <span>Nombre</span>
+                <span>Campo</span>
+                <span>Procedimiento</span>
+                <span>Resultado</span>
+                <span>Fecha</span>
+                <span>Acciones</span>
+              </div>
+              {evaluations.map((evaluation, index) => (
+                <div key={index} className="table-row">
+                  <span>{evaluation.cedula}</span>
+                  <span>{evaluation.nombre}</span>
+                  <span>{evaluation.campo}</span>
+                  <span>{evaluation.procedure_codigo}</span>
+                  <span className={`result ${evaluation.aprobo === 'Sí' ? 'approved' : 'failed'}`}>
+                    {evaluation.aprobo === 'Sí' ? 'Aprobado' : 'Reprobado'}
+                  </span>
+                  <span>{new Date(evaluation.completed_at).toLocaleDateString()}</span>
+                  <span>
+                    <button 
+                      onClick={() => loadEvaluationReport(evaluation.evaluation_id)}
+                      className="btn-small"
+                    >
+                      Ver Reporte
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const renderReport = () => {
     if (!selectedEvaluation) return <div>No hay reporte seleccionado</div>
@@ -925,6 +957,133 @@ const EvaluationsManager = () => {
             margin: 0;
             padding: 1rem;
           }
+        }
+
+        /* Estilos para la tabla de evaluaciones */
+        .evaluations-table {
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          margin-top: 1rem;
+        }
+
+        .table-header {
+          display: grid;
+          grid-template-columns: 120px 1fr 150px 150px 100px 100px 120px;
+          gap: 1rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          font-weight: bold;
+          border-bottom: 2px solid #dee2e6;
+        }
+
+        .table-row {
+          display: grid;
+          grid-template-columns: 120px 1fr 150px 150px 100px 100px 120px;
+          gap: 1rem;
+          padding: 1rem;
+          border-bottom: 1px solid #dee2e6;
+          align-items: center;
+        }
+
+        .table-row:hover {
+          background: #f8f9fa;
+        }
+
+        .result.approved {
+          color: #28a745;
+          font-weight: bold;
+        }
+
+        .result.failed {
+          color: #dc3545;
+          font-weight: bold;
+        }
+
+        .btn-small {
+          padding: 0.5rem 1rem;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.875rem;
+        }
+
+        .btn-small:hover {
+          background: #0056b3;
+        }
+
+        .search-filters {
+          background: #f8f9fa;
+          padding: 1.5rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+        }
+
+        .filter-group {
+          margin-bottom: 1rem;
+        }
+
+        .filter-group label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 500;
+        }
+
+        .filter-group input, .filter-group select {
+          width: 100%;
+          padding: 0.5rem;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+        }
+
+        .filter-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-top: 1rem;
+        }
+
+        .filter-actions button {
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+        }
+
+        .filter-actions button:first-child {
+          background: #007bff;
+          color: white;
+        }
+
+        .filter-actions button:first-child:hover {
+          background: #0056b3;
+        }
+
+        .filter-actions button:last-child {
+          background: #6c757d;
+          color: white;
+        }
+
+        .filter-actions button:last-child:hover {
+          background: #545b62;
+        }
+
+        .loading {
+          text-align: center;
+          padding: 2rem;
+          color: #666;
+        }
+
+        .error-message {
+          background: #f8d7da;
+          color: #721c24;
+          padding: 1rem;
+          border-radius: 4px;
+          margin-bottom: 1rem;
+          border: 1px solid #f5c6cb;
         }
       `}</style>
     </div>
