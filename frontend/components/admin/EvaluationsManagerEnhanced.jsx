@@ -1527,7 +1527,9 @@ const EvaluationsManagerEnhanced = () => {
                   borderBottom: '1px solid #eee'
                 }}>
                   <span style={{ fontWeight: 'bold', color: '#333' }}>¿Realizó sugerencias?</span>
-                  <span style={{ fontWeight: 'bold' }}>{feedback.hizo_sugerencia}</span>
+                  <span style={{ fontWeight: 'bold' }}>
+                    {feedback.hizo_sugerencia === 'Sí' ? 'Sí' : 'No'}
+                  </span>
                 </div>
                 {feedback.cual_sugerencia && (
                   <div style={{
@@ -1568,7 +1570,11 @@ const EvaluationsManagerEnhanced = () => {
               overflow: 'hidden'
             }}>
               {[
-                { label: 'Estado final de la evaluación:', value: evaluation.aprobo === 'Sí' ? 'APROBADO' : 'NO APROBADO', className: evaluation.aprobo === 'Sí' ? 'approved' : 'failed' },
+                { 
+                  label: 'Estado final de la evaluación:', 
+                  value: (evaluation.aprobo_conocimiento === 'Sí' && evaluation.aprobo === 'Sí') ? 'APROBADO' : 'NO APROBADO', 
+                  className: (evaluation.aprobo_conocimiento === 'Sí' && evaluation.aprobo === 'Sí') ? 'approved' : 'failed' 
+                },
                 { label: 'Fecha de evaluación:', value: new Date(evaluation.completed_at).toLocaleString('es-ES') },
                 { label: 'Evaluador supervisado por:', value: 'Sistema DICACOCU 360°' }
               ].map((item, index) => (
