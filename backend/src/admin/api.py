@@ -3,7 +3,7 @@ API endpoints para el módulo administrativo
 Integración completa con el workflow de generación de preguntas
 """
 
-from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, Depends, Header
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, Depends, Header, UploadFile, File
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -1443,4 +1443,177 @@ async def health_check_admin():
         raise HTTPException(
             status_code=500,
             detail=f"Error en health check: {str(e)}"
+        )
+
+# =============================================================================
+# ENDPOINTS DE CARGA DE PROCEDIMIENTOS
+# =============================================================================
+
+@admin_router.post("/procedures/upload")
+async def upload_procedures(
+    files: List[UploadFile] = File(...),
+    current_user: Dict = Depends(verify_admin_session)
+):
+    """Cargar y validar procedimientos .docx con criterios específicos"""
+    try:
+        from pathlib import Path
+        from .utils import extract_procedure_code_and_version
+        import shutil
+        
+        # Validar que todos los archivos sean .docx
+        for file in files:
+            if not file.filename.endswith('.docx'):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Solo se aceptan archivos .docx. Archivo inválido: {file.filename}"
+                )
+        
+        # Directorio de destino
+        scanner = get_scanner()
+        procedures_dir = scanner.procedures_source_dir
+        procedures_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Cargar tracking data actual para comparaciones
+        tracking_data = scanner.cargar_tracking_data()
+        generated_questions = tracking_data.get("generated_questions", {})
+        
+        # Obtener cola actual
+        current_queue = scanner.get_generation_queue()
+        
+        results = []
+        
+        for file in files:
+            result = {
+                "filename": file.filename,
+                "codigo": None,
+                "version": None,
+                "status": "error",
+                "message": "Error desconocido",
+                "details": None
+            }
+            
+            try:
+                # Criterio 1: Extraer código y versión del nombre del archivo
+                try:
+                    codigo, version = extract_procedure_code_and_version(file.filename)
+                    result["codigo"] = codigo
+                    result["version"] = version
+                except Exception as e:
+                    result["status"] = "error"
+                    result["message"] = "Error extrayendo código y versión"
+                    result["details"] = f"Formato de archivo inválido: {str(e)}"
+                    results.append(result)
+                    continue
+                
+                # Leer contenido del archivo para validaciones adicionales
+                file_content = await file.read()
+                await file.seek(0)  # Reset para uso posterior
+                
+                # Criterio 2: Validar contenido del archivo (opcional - se puede mejorar)
+                # Por ahora, validamos que el archivo tenga contenido
+                if len(file_content) == 0:
+                    result["status"] = "error"
+                    result["message"] = "Archivo vacío"
+                    result["details"] = "El archivo no contiene datos"
+                    results.append(result)
+                    continue
+                
+                # Criterio 3: Verificar si ya existe un procedimiento con el mismo código
+                existing_procedure = None
+                existing_version = None
+                
+                # Buscar en preguntas generadas
+                for tracking_key, question_data in generated_questions.items():
+                    if question_data.get("codigo_procedimiento") == codigo:
+                        existing_procedure = question_data
+                        existing_version = question_data.get("version_proc", 1)
+                        break
+                
+                # Buscar en cola actual
+                if not existing_procedure:
+                    for queue_item in current_queue:
+                        if queue_item["codigo"] == codigo:
+                            existing_procedure = queue_item
+                            existing_version = queue_item["version"]
+                            break
+                
+                # Criterio 4: Validar versión superior o código nuevo
+                if existing_procedure:
+                    if version <= existing_version:
+                        result["status"] = "error"
+                        result["message"] = "Versión no superior"
+                        result["details"] = f"Ya existe versión {existing_version}. Nueva versión ({version}) debe ser superior."
+                        results.append(result)
+                        continue
+                    else:
+                        # Versión superior - aceptar
+                        result["status"] = "success"
+                        result["message"] = "Versión superior aceptada"
+                        result["details"] = f"Actualización de versión {existing_version} → {version}"
+                else:
+                    # Código nuevo - aceptar
+                    result["status"] = "success"
+                    result["message"] = "Código nuevo aceptado"
+                    result["details"] = "Procedimiento nuevo añadido al sistema"
+                
+                # Si llegamos aquí, el archivo es válido - copiarlo al directorio
+                if result["status"] == "success":
+                    dest_path = procedures_dir / file.filename
+                    
+                    # Escribir archivo
+                    with open(dest_path, "wb") as buffer:
+                        shutil.copyfileobj(file.file, buffer)
+                    
+                    result["details"] += f" | Archivo guardado en: {dest_path}"
+                
+            except Exception as e:
+                result["status"] = "error"
+                result["message"] = "Error procesando archivo"
+                result["details"] = str(e)
+            
+            results.append(result)
+        
+        # Rescan automático después de cargar archivos exitosos
+        successful_uploads = [r for r in results if r["status"] == "success"]
+        if successful_uploads:
+            try:
+                # Ejecutar rescan en background
+                async def rescan_after_upload():
+                    await asyncio.sleep(1)  # Breve delay para asegurar que los archivos están listos
+                    try:
+                        scanner = get_scanner()
+                        scan_result = scanner.escanear_directorio()
+                        print(f"✅ Rescan automático completado: {scan_result.get('message', 'OK')}")
+                    except Exception as e:
+                        print(f"⚠️ Error en rescan automático: {e}")
+                
+                # Ejecutar rescan en background
+                import threading
+                thread = threading.Thread(target=lambda: asyncio.run(rescan_after_upload()))
+                thread.daemon = True
+                thread.start()
+                
+            except Exception as e:
+                print(f"⚠️ Error iniciando rescan automático: {e}")
+        
+        return AdminResponse(
+            success=True,
+            message=f"Procesados {len(files)} archivos. {len(successful_uploads)} exitosos.",
+            data={
+                "results": results,
+                "summary": {
+                    "total_files": len(files),
+                    "successful": len(successful_uploads),
+                    "failed": len(results) - len(successful_uploads)
+                }
+            },
+            timestamp=datetime.now().isoformat()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando archivos: {str(e)}"
         )

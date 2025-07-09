@@ -8,6 +8,7 @@ import AdminMonitorPage from './pages/AdminMonitorPage.jsx'
 import AdminConfigPage from './pages/AdminConfigPage.jsx'
 import AdminEvaluationsPage from './pages/AdminEvaluationsPage.jsx'
 import AdminEvaluationsPageDebug from './pages/AdminEvaluationsPageDebug.jsx'
+import ProcedureUpload from '../components/admin/ProcedureUpload.jsx'
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path="monitor" element={<AdminMonitorPage />} />
         <Route path="config" element={<AdminConfigPage />} />
         <Route path="evaluations" element={<AdminEvaluationsPage />} />
+        <Route path="procedures/upload" element={<ProcedureUpload />} />
       </Route>
     </Routes>
   )

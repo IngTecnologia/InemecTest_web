@@ -88,6 +88,12 @@ const AdminLayout = () => {
       label: 'Gestión de Pruebas',
       icon: '📊',
       description: 'Ver estadísticas y reportes de evaluaciones'
+    },
+    {
+      path: '/admin/procedures/upload',
+      label: 'Subir Procedimientos',
+      icon: '📤',
+      description: 'Cargar nuevos procedimientos para generación'
     }
   ]
 
