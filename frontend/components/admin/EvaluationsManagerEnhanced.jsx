@@ -1528,7 +1528,7 @@ const EvaluationsManagerEnhanced = () => {
                 }}>
                   <span style={{ fontWeight: 'bold', color: '#333' }}>¿Realizó sugerencias?</span>
                   <span style={{ fontWeight: 'bold' }}>
-                    {feedback.hizo_sugerencia === 'Sí' ? 'Sí' : 'No'}
+                    {(feedback.hizo_sugerencia === 'Sí' || feedback.cual_sugerencia) ? 'Sí' : 'No'}
                   </span>
                 </div>
                 {feedback.cual_sugerencia && (
