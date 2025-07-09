@@ -104,6 +104,10 @@ class EmailService:
         aplicado_class = 'approved' if aprobo_aplicado == 'Sí' else 'failed'
         aplicado_status = '✅ APROBÓ' if aprobo_aplicado == 'Sí' else '❌ NO APROBÓ'
         
+        # Convertir saltos de línea a HTML
+        email_intro_html = self.email_intro.replace('\n', '<br>')
+        email_footer_html = self.email_footer.replace('\n', '<br>')
+        
         # Template HTML (diseño similar a la pantalla de resultados)
         html_template = f"""
         <!DOCTYPE html>
@@ -285,8 +289,8 @@ class EmailService:
                 
                 <div class="email-footer">
                     <p><strong>Estimado(a) evaluado(a),</strong></p>
-                    <p>{self.email_intro.replace('\\n', '<br>')}</p>
-                    <p style="margin-top: 1.5rem;">{self.email_footer.replace('\\n', '<br>')}</p>
+                    <p>{email_intro_html}</p>
+                    <p style="margin-top: 1.5rem;">{email_footer_html}</p>
                 </div>
             </div>
         </body>
