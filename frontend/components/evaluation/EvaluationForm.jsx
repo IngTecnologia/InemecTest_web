@@ -22,6 +22,15 @@ const EvaluationForm = () => {
   
   // NUEVO: Mapeo de opciones randomizadas a originales
   const [optionMappings, setOptionMappings] = useState({})
+  
+  // Estados para envío de correo
+  const [emailData, setEmailData] = useState({
+    email: '',
+    isValidEmail: false,
+    isSending: false,
+    emailSent: false,
+    emailError: ''
+  })
   // NUEVO: Guardar orden exacto de opciones mostradas
   const [questionsDisplayOrder, setQuestionsDisplayOrder] = useState({})
   
@@ -361,6 +370,67 @@ const EvaluationForm = () => {
     }
   }
 
+  // Funciones para manejo de correo
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  const handleEmailChange = (e) => {
+    const email = e.target.value
+    setEmailData({
+      ...emailData,
+      email: email,
+      isValidEmail: validateEmail(email),
+      emailError: '', // Limpiar errores previos
+      emailSent: false // Reset estado de envío
+    })
+  }
+
+  const sendEmailReport = async () => {
+    if (!emailData.isValidEmail || !evaluationResult?.evaluation_id) {
+      return
+    }
+
+    try {
+      setEmailData({ ...emailData, isSending: true, emailError: '', emailSent: false })
+
+      const formData = new FormData()
+      formData.append('recipient_email', emailData.email)
+
+      const response = await fetch(`/api/v1/evaluations/${evaluationResult.evaluation_id}/send-email`, {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setEmailData({
+          ...emailData,
+          isSending: false,
+          emailSent: true,
+          emailError: ''
+        })
+      } else {
+        setEmailData({
+          ...emailData,
+          isSending: false,
+          emailSent: false,
+          emailError: result.message || 'Error enviando correo'
+        })
+      }
+    } catch (error) {
+      setEmailData({
+        ...emailData,
+        isSending: false,
+        emailSent: false,
+        emailError: 'Error de conexión al enviar correo'
+      })
+      console.error('Error enviando correo:', error)
+    }
+  }
+
   const renderSuccessPage = () => (
     <div className="form-container" style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
       <div style={{
@@ -506,6 +576,102 @@ const EvaluationForm = () => {
         </div>
       </div>
 
+      {/* Sección de envío de correo */}
+      <div style={{
+        background: '#f8f9fa',
+        padding: '1.5rem',
+        borderRadius: '8px',
+        marginBottom: '2rem',
+        border: '1px solid #e9ecef'
+      }}>
+        <h3 style={{ color: '#333', marginBottom: '1rem', fontSize: '1.2rem' }}>
+          📧 Enviar reporte por correo electrónico
+        </h3>
+        
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '0.5rem', 
+            color: '#555',
+            fontSize: '0.9rem'
+          }}>
+            Correo electrónico (opcional):
+          </label>
+          <input
+            type="email"
+            value={emailData.email}
+            onChange={handleEmailChange}
+            placeholder="ejemplo@correo.com"
+            style={{
+              width: '100%',
+              padding: '0.8rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '1rem',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
+        
+        {emailData.email && !emailData.isValidEmail && (
+          <div style={{ 
+            color: '#dc3545', 
+            fontSize: '0.9rem', 
+            marginBottom: '1rem',
+            padding: '0.5rem',
+            background: '#f8d7da',
+            borderRadius: '4px'
+          }}>
+            ⚠️ Por favor ingrese un correo válido
+          </div>
+        )}
+        
+        {emailData.isValidEmail && (
+          <button
+            onClick={sendEmailReport}
+            disabled={emailData.isSending}
+            style={{
+              background: emailData.isSending ? '#6c757d' : '#28a745',
+              color: 'white',
+              padding: '0.8rem 1.5rem',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '1rem',
+              cursor: emailData.isSending ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+          >
+            {emailData.isSending ? '📤 Enviando...' : '📧 Enviar Reporte'}
+          </button>
+        )}
+        
+        {emailData.emailSent && (
+          <div style={{ 
+            color: '#28a745', 
+            fontSize: '0.9rem', 
+            marginTop: '1rem',
+            padding: '0.5rem',
+            background: '#d4edda',
+            borderRadius: '4px'
+          }}>
+            ✅ Reporte enviado exitosamente a {emailData.email}
+          </div>
+        )}
+        
+        {emailData.emailError && (
+          <div style={{ 
+            color: '#dc3545', 
+            fontSize: '0.9rem', 
+            marginTop: '1rem',
+            padding: '0.5rem',
+            background: '#f8d7da',
+            borderRadius: '4px'
+          }}>
+            ❌ {emailData.emailError}
+          </div>
+        )}
+      </div>
+
       <button 
         className="btn" 
         onClick={() => {
@@ -513,6 +679,14 @@ const EvaluationForm = () => {
           setEvaluationResult(null)
           setCurrentStep(1)
           setSessionId(null)
+          // Limpiar estado del correo
+          setEmailData({
+            email: '',
+            isValidEmail: false,
+            isSending: false,
+            emailSent: false,
+            emailError: ''
+          })
         }}
         style={{ 
           padding: '1rem 2rem',

@@ -4,12 +4,13 @@ API endpoints para InemecTest - Versión corregida con manejo de randomización
 Integración completa con módulo administrativo
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Form
 from typing import List, Optional, Dict, Any
 import random
 
 from .models import *
 from .excel_handler import ExcelHandler
+from .email_service import EmailService
 # INTEGRACIÓN: Importar router admin
 from .admin.api import admin_router
 
@@ -571,3 +572,100 @@ async def get_general_stats():
             status_code=500, 
             detail=f"Error obteniendo estadísticas generales: {str(e)}"
         )
+
+# =============================================================================
+# ENDPOINTS DE ENVÍO DE CORREO
+# =============================================================================
+
+@router.post("/evaluations/{evaluation_id}/send-email")
+async def send_evaluation_email(
+    evaluation_id: str,
+    recipient_email: str = Form(..., description="Correo del destinatario")
+):
+    """
+    Enviar reporte de evaluación por correo electrónico
+    
+    Args:
+        evaluation_id: ID de la evaluación
+        recipient_email: Correo electrónico del destinatario
+        
+    Returns:
+        dict: Resultado del envío
+    """
+    try:
+        # Validar formato de correo básico
+        if "@" not in recipient_email or "." not in recipient_email:
+            raise HTTPException(
+                status_code=400, 
+                detail="Formato de correo electrónico inválido"
+            )
+        
+        # Obtener datos de la evaluación
+        evaluations = await excel_handler.get_all_evaluations()
+        evaluation_data = None
+        
+        for evaluation in evaluations:
+            if evaluation.get("evaluation_id") == evaluation_id:
+                evaluation_data = evaluation
+                break
+        
+        if not evaluation_data:
+            raise HTTPException(
+                status_code=404, 
+                detail="Evaluación no encontrada"
+            )
+        
+        # Inicializar servicio de correo
+        email_service = EmailService()
+        
+        # Enviar correo
+        success, message = email_service.send_evaluation_report(
+            evaluation_data, 
+            recipient_email
+        )
+        
+        if success:
+            return {
+                "success": True,
+                "message": "Correo enviado exitosamente",
+                "recipient": recipient_email,
+                "evaluation_id": evaluation_id
+            }
+        else:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Error enviando correo: {message}"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno enviando correo: {str(e)}"
+        )
+
+@router.post("/email/test-connection")
+async def test_email_connection():
+    """
+    Probar conexión SMTP (útil para debugging)
+    
+    Returns:
+        dict: Estado de la conexión
+    """
+    try:
+        email_service = EmailService()
+        success, message = email_service.test_connection()
+        
+        return {
+            "success": success,
+            "message": message,
+            "smtp_server": email_service.smtp_server,
+            "smtp_port": email_service.smtp_port
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error probando conexión: {str(e)}"
+        }
