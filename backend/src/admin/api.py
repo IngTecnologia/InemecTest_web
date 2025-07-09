@@ -1526,7 +1526,10 @@ async def upload_procedures(
                 for tracking_key, question_data in generated_questions.items():
                     if question_data.get("codigo_procedimiento") == codigo:
                         existing_procedure = question_data
-                        existing_version = question_data.get("version_proc", 1)
+                        try:
+                            existing_version = int(question_data.get("version_proc", 1))
+                        except (ValueError, TypeError):
+                            existing_version = 1
                         break
                 
                 # Buscar en cola actual
@@ -1534,7 +1537,10 @@ async def upload_procedures(
                     for queue_item in current_queue:
                         if queue_item["codigo"] == codigo:
                             existing_procedure = queue_item
-                            existing_version = queue_item["version"]
+                            try:
+                                existing_version = int(queue_item["version"])
+                            except (ValueError, TypeError):
+                                existing_version = 1
                             break
                 
                 # Criterio 4: Validar versión superior o código nuevo
