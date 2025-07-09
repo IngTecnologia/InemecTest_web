@@ -897,7 +897,7 @@ const EvaluationsManagerEnhanced = () => {
             </div>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px',
+                gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px 120px',
                 gap: '1rem',
                 alignItems: 'center',
                 fontWeight: '600',
@@ -914,12 +914,13 @@ const EvaluationsManagerEnhanced = () => {
                 <span style={{ textAlign: 'center' }}>Conocimiento</span>
                 <span style={{ textAlign: 'center' }}>Aplicado</span>
                 <span style={{ textAlign: 'center' }}>Fecha</span>
+                <span style={{ textAlign: 'center' }}>Acciones</span>
               </div>
               
               {(hasActiveFilters() && filteredStats ? filteredStats.recent_evaluations : stats.recent_evaluations).slice(0, 8).map((evaluation, index) => (
                 <div key={index} style={{
                   display: 'grid',
-                  gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px',
+                  gridTemplateColumns: '120px 1fr 1fr 80px 80px 80px 100px 120px',
                   gap: '1rem',
                   padding: '0.75rem',
                   borderBottom: '1px solid #e1e5e9',
@@ -950,6 +951,22 @@ const EvaluationsManagerEnhanced = () => {
                   </span>
                   <span style={{ fontSize: '0.8rem', color: '#666', textAlign: 'center' }}>
                     {new Date(evaluation.completed_at).toLocaleDateString()}
+                  </span>
+                  <span style={{ textAlign: 'center' }}>
+                    <button 
+                      onClick={() => loadEvaluationReport(evaluation.evaluation_id)}
+                      style={{
+                        padding: '0.4rem 0.6rem',
+                        background: '#667eea',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      Ver Reporte
+                    </button>
                   </span>
                 </div>
               ))}
@@ -1339,42 +1356,100 @@ const EvaluationsManagerEnhanced = () => {
                     </div>
                     
                     <div style={{ marginLeft: '1rem' }}>
-                      <div style={{ 
-                        padding: '0.5rem',
-                        borderRadius: '4px',
-                        background: answer.selected_option === answer.correct_option ? '#e8f5e8' : '#e3f2fd',
-                        borderLeft: `4px solid ${answer.selected_option === answer.correct_option ? '#2e7d32' : '#1976d2'}`,
-                        marginBottom: '0.5rem'
-                      }}>
-                        <strong>Respuesta seleccionada:</strong> {answer.selected_text}
-                        <span style={{ 
-                          fontSize: '0.8rem',
-                          fontWeight: 'bold',
-                          marginLeft: '0.5rem',
-                          color: answer.selected_option === answer.correct_option ? '#2e7d32' : '#1976d2'
-                        }}>
-                          ← SELECCIONADA
-                        </span>
+                      <div style={{ marginBottom: '0.5rem', fontWeight: '500' }}>
+                        <strong>Opciones (en el orden que aparecieron en la prueba):</strong>
                       </div>
                       
-                      {answer.selected_option !== answer.correct_option && (
-                        <div style={{ 
-                          padding: '0.5rem',
-                          borderRadius: '4px',
-                          background: '#e8f5e8',
-                          borderLeft: '4px solid #2e7d32'
-                        }}>
-                          <strong>Respuesta correcta:</strong> {answer.correct_text}
-                          <span style={{ 
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold',
-                            marginLeft: '0.5rem',
-                            color: '#2e7d32'
+                      {/* Mostrar todas las opciones en el orden original */}
+                      {[
+                        { letter: 'A', text: answer.option_a_text },
+                        { letter: 'B', text: answer.option_b_text },
+                        { letter: 'C', text: answer.option_c_text },
+                        { letter: 'D', text: answer.option_d_text }
+                      ].map((option, optionIndex) => {
+                        const isSelected = answer.selected_option === option.letter;
+                        const isCorrect = answer.correct_option_displayed === option.letter;
+                        
+                        let backgroundColor = '#f8f9fa';
+                        let borderColor = '#ddd';
+                        let textColor = '#333';
+                        
+                        if (isSelected && isCorrect) {
+                          backgroundColor = '#e8f5e8';
+                          borderColor = '#2e7d32';
+                          textColor = '#2e7d32';
+                        } else if (isSelected) {
+                          backgroundColor = '#e3f2fd';
+                          borderColor = '#1976d2';
+                          textColor = '#1976d2';
+                        } else if (isCorrect) {
+                          backgroundColor = '#e8f5e8';
+                          borderColor = '#2e7d32';
+                          textColor = '#2e7d32';
+                        }
+                        
+                        return (
+                          <div key={optionIndex} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '0.75rem',
+                            marginBottom: '0.5rem',
+                            backgroundColor: backgroundColor,
+                            border: `1px solid ${borderColor}`,
+                            borderRadius: '4px',
+                            position: 'relative'
                           }}>
-                            ← CORRECTA
-                          </span>
-                        </div>
-                      )}
+                            <span style={{ 
+                              fontWeight: 'bold',
+                              marginRight: '0.5rem',
+                              minWidth: '25px',
+                              color: textColor
+                            }}>
+                              {option.letter})
+                            </span>
+                            <span style={{ 
+                              flex: 1,
+                              color: textColor
+                            }}>
+                              {option.text}
+                            </span>
+                            
+                            {/* Indicadores */}
+                            <div style={{ marginLeft: '1rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                              {isSelected && (
+                                <span style={{ 
+                                  color: '#1976d2',
+                                  marginRight: '0.5rem'
+                                }}>
+                                  ← SELECCIONADA
+                                </span>
+                              )}
+                              {isCorrect && (
+                                <span style={{ 
+                                  color: '#2e7d32'
+                                }}>
+                                  ← CORRECTA
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Resumen de la respuesta */}
+                      <div style={{
+                        marginTop: '1rem',
+                        padding: '0.75rem',
+                        background: answer.is_correct === 'Sí' ? '#e8f5e8' : '#ffebee',
+                        borderRadius: '4px',
+                        border: `1px solid ${answer.is_correct === 'Sí' ? '#2e7d32' : '#c62828'}`
+                      }}>
+                        <strong>Resultado:</strong> El evaluado seleccionó la opción {answer.selected_option} 
+                        {answer.is_correct === 'Sí' ? ' (CORRECTA)' : ' (INCORRECTA)'}
+                        {answer.is_correct === 'No' && (
+                          <span>, la respuesta correcta era la opción {answer.correct_option_displayed}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
