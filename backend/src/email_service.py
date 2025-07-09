@@ -23,8 +23,8 @@ class EmailService:
         
         # Configuración de mensajes (hardcodeados para fácil modificación)
         self.email_subject = "Reporte de Evaluación - InemecTest"
-        self.email_intro = "Estimado(a) evaluado(a),\n\nAdjunto encontrará el reporte completo de su evaluación presentada en el sistema InemecTest."
-        self.email_footer = "Este es un correo automático, por favor no responda.\n\nSaludos,\nEquipo InemecTest"
+        self.email_intro = "Estimado(a) evaluado(a),\n\nAdjunto encontrará el reporte completo de su evaluación presentada en el sistema DICACOCU 360°."
+        self.email_footer = "Este es un correo automático, por favor no responda.\n\nSaludos,\nEquipo de Nuevas Tecnologías INEMEC"
     
     def send_evaluation_report(self, evaluation_data: Dict[str, Any], recipient_email: str) -> Tuple[bool, str]:
         """
@@ -285,8 +285,8 @@ class EmailService:
                 
                 <div class="email-footer">
                     <p><strong>Estimado(a) evaluado(a),</strong></p>
-                    <p>{self.email_intro}</p>
-                    <p style="margin-top: 1.5rem;">{self.email_footer}</p>
+                    <p>{self.email_intro.replace('\\n', '<br>')}</p>
+                    <p style="margin-top: 1.5rem;">{self.email_footer.replace('\\n', '<br>')}</p>
                 </div>
             </div>
         </body>
